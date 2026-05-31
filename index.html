@@ -2053,24 +2053,24 @@ function gerarHTMLCardImpressao(aluno, opts) {
       const cor = val==='S' ? '#2d6a4f' : val==='D' ? '#e9891a' : val==='N' ? '#c1121f' : '#aaa';
       const bg  = val==='S' ? '#d8f3dc' : val==='D' ? '#fef3e2' : val==='N' ? '#ffe0e0' : '#f5f5f5';
       return `<tr>
-        <td style="padding:5px 8px;font-size:9.5pt;border-bottom:1px solid #e8e8e8;line-height:1.4;">${c.texto}</td>
-        <td style="padding:5px 8px;text-align:center;border-bottom:1px solid #e8e8e8;white-space:nowrap;">
+        <td style="padding:4px 8px;font-size:9pt;border-bottom:1px solid #e8e8e8;line-height:1.35;">${c.texto}</td>
+        <td style="padding:4px 8px;text-align:center;border-bottom:1px solid #e8e8e8;white-space:nowrap;">
           <span style="background:${bg};color:${cor};font-weight:700;font-size:9pt;padding:2px 7px;border-radius:5px;">${val || '—'}</span>
         </td>
-        <td style="padding:5px 8px;border-bottom:1px solid #e8e8e8;width:120px;">
-          <div style="border-bottom:1px dotted #ccc;height:14px;margin-bottom:3px;"></div>
+        <td style="padding:4px 8px;border-bottom:1px solid #e8e8e8;width:110px;">
+          <div style="border-bottom:1px dotted #ccc;height:12px;margin-bottom:2px;"></div>
         </td>
       </tr>`;
     }).join('');
 
-    return `<div style="margin-bottom:12pt;">
+    return `<div style="margin-bottom:8pt;break-inside:avoid;page-break-inside:avoid;">
       <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">${area.emoji} ${area.label}</div>
-      <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none;">
         <thead>
           <tr style="background:#f0f7f0;">
-            <th style="padding:5px 8px;font-size:9pt;text-align:left;color:#5a7a68;font-weight:600;border-bottom:1px solid #ddd;">Critério</th>
-            <th style="padding:5px 8px;font-size:9pt;text-align:center;color:#5a7a68;font-weight:600;border-bottom:1px solid #ddd;width:45px;">Aval.</th>
-            <th style="padding:5px 8px;font-size:9pt;text-align:left;color:#5a7a68;font-weight:600;border-bottom:1px solid #ddd;width:120px;">Anotação</th>
+            <th style="padding:4px 8px;font-size:9pt;text-align:left;color:#5a7a68;font-weight:600;border-bottom:1px solid #ddd;">Critério</th>
+            <th style="padding:4px 8px;font-size:9pt;text-align:center;color:#5a7a68;font-weight:600;border-bottom:1px solid #ddd;width:45px;">Aval.</th>
+            <th style="padding:4px 8px;font-size:9pt;text-align:left;color:#5a7a68;font-weight:600;border-bottom:1px solid #ddd;width:110px;">Anotação</th>
           </tr>
         </thead>
         <tbody>${rows}</tbody>
@@ -2095,7 +2095,7 @@ function gerarHTMLCardImpressao(aluno, opts) {
 
   return `
     <!-- CABEÇALHO DO CARD -->
-    <div style="border:2.5px solid #2d6a4f;border-radius:12pt;overflow:hidden;margin-bottom:0;page-break-inside:avoid;">
+    <div style="border:2.5px solid #2d6a4f;border-radius:12pt;margin-bottom:0;">
 
       <!-- Topo verde -->
       <div style="background:#1b4332;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
@@ -2122,7 +2122,7 @@ function gerarHTMLCardImpressao(aluno, opts) {
       <div style="padding:14px 16px;background:white;">
 
         <!-- Legenda -->
-        ${opts.aval ? `<div style="display:flex;gap:16px;margin-bottom:12pt;font-size:8.5pt;color:#5a7a68;">
+        ${opts.aval ? `<div style="display:flex;gap:14px;margin-bottom:8pt;font-size:8pt;color:#5a7a68;flex-wrap:wrap;">
           <span><strong style="color:#2d6a4f;">S</strong> = Satisfatório (70–100%)</span>
           <span><strong style="color:#e9891a;">D</strong> = Em desenvolvimento (50–70%)</span>
           <span><strong style="color:#c1121f;">N</strong> = Não adquirido (&lt;50%)</span>
@@ -2133,28 +2133,28 @@ function gerarHTMLCardImpressao(aluno, opts) {
         ${opts.aval ? areasBlocos : ''}
 
         <!-- Figura humana -->
-        ${opts.aval && aval.figuraHumana ? `<div style="margin-bottom:12pt;padding:8px 12px;background:#f8f8f8;border-radius:8px;border:1px solid #e0e0e0;font-size:9.5pt;">
+        ${opts.aval && aval.figuraHumana ? `<div style="margin-bottom:8pt;padding:6px 10px;background:#f8f8f8;border-radius:6px;border:1px solid #e0e0e0;font-size:9pt;break-inside:avoid;page-break-inside:avoid;">
           <strong style="color:#1b4332;">🎨 Figura Humana:</strong> ${figuraMap[aval.figuraHumana] || aval.figuraHumana}
         </div>` : ''}
 
         <!-- Relatório narrativo -->
-        ${opts.rel && rel ? `<div style="margin-bottom:14pt;">
-          <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">📝 Relatório Narrativo</div>
-          <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:10px 12px;font-size:10pt;line-height:1.7;font-family:Georgia,serif;color:#1c2e26;background:#fafff9;">${rel}</div>
+        ${opts.rel && rel ? `<div style="margin-bottom:10pt;break-inside:avoid;page-break-inside:avoid;">
+          <div style="background:#1b4332;color:white;padding:5px 10px;font-weight:700;font-size:10pt;">📝 Relatório Narrativo</div>
+          <div style="border:1px solid #ddd;border-top:none;padding:8px 12px;font-size:9.5pt;line-height:1.65;font-family:Georgia,serif;color:#1c2e26;background:#fafff9;">${rel}</div>
         </div>` : ''}
 
         <!-- Presença semanal -->
-        ${opts.presenca ? `<div style="margin-bottom:14pt;">
-          <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">📅 Acompanhamento de Presença / Participação</div>
-          <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:10px 12px;">
+        ${opts.presenca ? `<div style="margin-bottom:10pt;break-inside:avoid;page-break-inside:avoid;">
+          <div style="background:#1b4332;color:white;padding:5px 10px;font-weight:700;font-size:10pt;">📅 Acompanhamento de Presença / Participação</div>
+          <div style="border:1px solid #ddd;border-top:none;padding:8px 10px;">
             ${tabelaSemanas}
           </div>
         </div>` : ''}
 
         <!-- Anotações livres -->
-        ${opts.obs ? `<div>
-          <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">🗒️ Observações e Anotações do Dia a Dia</div>
-          <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:12px 12px 6px;">
+        ${opts.obs ? `<div style="break-inside:avoid;page-break-inside:avoid;">
+          <div style="background:#1b4332;color:white;padding:5px 10px;font-weight:700;font-size:10pt;">🗒️ Observações e Anotações do Dia a Dia</div>
+          <div style="border:1px solid #ddd;border-top:none;padding:10px 10px 4px;">
             ${linhasAnotacao}
           </div>
         </div>` : ''}
