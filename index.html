@@ -876,7 +876,7 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-outline" onclick="abrirPickerSemana()">+ Adicionar Semana</button>
+          <button class="btn btn-outline" onclick="abrirPickerSemana()">+ Adicionar / Editar Semana</button>
           <button class="btn btn-primary" onclick="gerarPDFPlanejamento()">🖨️ Gerar PDF</button>
         </div>
       </div>
@@ -926,7 +926,7 @@
             <option value="">— Nenhuma —</option>
           </select>
         </div>
-        <button class="btn btn-primary" onclick="imprimirDashboardSemanas()">🖨️ Imprimir</button>
+
       </div>
       <div id="ds-cards-container">
         <div class="empty-state"><div class="icon">🗓️</div><p>Selecione um mês e ao menos uma semana para visualizar.</p></div>
@@ -3085,39 +3085,58 @@ function abrirPickerSemana() {
 
   const todasSemanas = gerarSemanasDoPeriodo(mes, ano);
   const jaIds = planState[key].semanas.map(s => s.id);
-
   const cont = document.getElementById('picker-semanas-auto');
-  let html = '';
+  cont.innerHTML = '';
 
   // Semanas já cadastradas (para edição)
   if (planState[key].semanas.length) {
-    html += '<div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">✏️ Semanas cadastradas (editar)</div>';
-    html += planState[key].semanas.map(function(sem, idx) {
-      return `<button class="btn btn-outline btn-sm"
-        style="width:100%;justify-content:flex-start;margin-bottom:6px;border-color:var(--verde-claro);color:var(--verde-escuro);"
-        onclick="closeModal('modal-picker-semana');editarSemana(${idx})">
-        ✏️ ${sem.label}
-      </button>`;
-    }).join('');
-    html += '<div style="height:1px;background:var(--cinza-borda);margin:12px 0;"></div>';
+    var secTitulo = document.createElement('div');
+    secTitulo.style.cssText = 'font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;';
+    secTitulo.textContent = '✏️ Semanas cadastradas — clique para editar';
+    cont.appendChild(secTitulo);
+
+    planState[key].semanas.forEach(function(sem, idx) {
+      var btn = document.createElement('button');
+      btn.className = 'btn btn-outline btn-sm';
+      btn.style.cssText = 'width:100%;justify-content:flex-start;margin-bottom:6px;border-color:var(--verde-claro);color:var(--verde-escuro);';
+      btn.textContent = '✏️ ' + sem.label;
+      btn.addEventListener('click', (function(i) { return function() {
+        closeModal('modal-picker-semana');
+        setTimeout(function() { editarSemana(i); }, 80);
+      }; })(idx));
+      cont.appendChild(btn);
+    });
+
+    var divider = document.createElement('div');
+    divider.style.cssText = 'height:1px;background:var(--cinza-borda);margin:12px 0;';
+    cont.appendChild(divider);
   }
 
   // Semanas do mês (novas)
-  if (!todasSemanas.length) {
-    html += '<p style="font-size:13px;color:var(--texto-suave);">Nenhuma semana encontrada para este mês.</p>';
-  } else {
-    html += '<div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">📋 Adicionar nova semana</div>';
-    html += todasSemanas.map(sem => {
-      const jaAdicionada = jaIds.includes(sem.id);
-      return `<button class="btn ${jaAdicionada ? 'btn-outline' : 'btn-primary'} btn-sm"
-        style="width:100%;justify-content:flex-start;margin-bottom:8px;${jaAdicionada ? 'opacity:.5;cursor:default;' : ''}"
-        ${jaAdicionada ? 'disabled' : `onclick="confirmarSemanaAuto('${sem.id}')"`}>
-        📅 ${sem.label} ${jaAdicionada ? '(já adicionada)' : ''}
-      </button>`;
-    }).join('');
-  }
+  var secNovaTitulo = document.createElement('div');
+  secNovaTitulo.style.cssText = 'font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;';
+  secNovaTitulo.textContent = '📋 Adicionar nova semana';
+  cont.appendChild(secNovaTitulo);
 
-  cont.innerHTML = html;
+  if (!todasSemanas.length) {
+    var p = document.createElement('p');
+    p.style.cssText = 'font-size:13px;color:var(--texto-suave);';
+    p.textContent = 'Nenhuma semana encontrada para este mês.';
+    cont.appendChild(p);
+  } else {
+    todasSemanas.forEach(function(sem) {
+      var jaAdicionada = jaIds.includes(sem.id);
+      var btn = document.createElement('button');
+      btn.className = 'btn ' + (jaAdicionada ? 'btn-outline' : 'btn-primary') + ' btn-sm';
+      btn.style.cssText = 'width:100%;justify-content:flex-start;margin-bottom:8px;' + (jaAdicionada ? 'opacity:.5;cursor:default;' : '');
+      btn.textContent = '📅 ' + sem.label + (jaAdicionada ? ' (já adicionada)' : '');
+      btn.disabled = jaAdicionada;
+      if (!jaAdicionada) {
+        btn.addEventListener('click', (function(id) { return function() { confirmarSemanaAuto(id); }; })(sem.id));
+      }
+      cont.appendChild(btn);
+    });
+  }
 
   // Pre-preencher datas do período personalizado com o mês atual
   const primeiroDia = new Date(ano, mes - 1, 1);
