@@ -328,6 +328,121 @@
     .main { margin-left: 0; }
     .relatorio-box { border: 1px solid #ccc; background: white; }
   }
+
+  /* ===================== HAMBURGER ===================== */
+  .hamburger {
+    display: none; flex-direction: column; justify-content: center; gap: 5px;
+    width: 38px; height: 38px; cursor: pointer; padding: 6px;
+    border-radius: 8px; transition: background .2s; flex-shrink: 0;
+  }
+  .hamburger:hover { background: var(--verde-menta); }
+  .hamburger span { display: block; height: 2px; background: var(--verde-escuro); border-radius: 2px; transition: all .25s; }
+  .hamburger.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .hamburger.open span:nth-child(2) { opacity: 0; }
+  .hamburger.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  .sidebar-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5); z-index: 99;
+  }
+  .sidebar-overlay.open { display: block; }
+
+  /* ===================== TABLET (≤ 900px) ===================== */
+  @media (max-width: 900px) {
+    .sidebar { transform: translateX(-100%); transition: transform .28s ease; z-index: 200; width: 270px; }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; }
+    .hamburger { display: flex; }
+    .topbar { padding: 14px 16px; gap: 10px; }
+    .topbar h1 { font-size: 18px; }
+    .content { padding: 20px 16px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+    .form-full { grid-column: 1; }
+    .modal { width: 96%; border-radius: 14px; }
+    .modal-body { padding: 18px; }
+    .modal-header { padding: 16px 18px; }
+    .modal-footer { padding: 14px 18px; flex-wrap: wrap; }
+    table th:nth-child(4), table td:nth-child(4) { display: none; }
+    .search-bar input { width: 180px; }
+    #page-importar > div { grid-template-columns: 1fr !important; }
+    #tab-relatorio > div:first-child { flex-wrap: wrap; }
+  }
+
+  /* ===================== MOBILE (≤ 600px) ===================== */
+  @media (max-width: 600px) {
+    .topbar h1 { font-size: 15px; }
+    .content { padding: 12px 10px; }
+    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 8px; margin-bottom: 16px; }
+    .stat-card { padding: 12px 12px; }
+    .stat-card .value { font-size: 22px; }
+    .stat-card .label { font-size: 10px; }
+
+    .login-box { padding: 28px 18px; border-radius: 16px; margin: 16px; }
+    .login-titulo { font-size: 17px; }
+    .login-sub { margin-bottom: 22px; }
+
+    #page-alunos > div:first-child { flex-wrap: wrap; gap: 8px; }
+    #page-alunos > div:first-child > div:last-child { margin-left: 0 !important; width: 100%; justify-content: flex-end; }
+    #page-turmas > div:first-child { flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+    .search-bar { flex: 1; min-width: 0; }
+    .search-bar input { width: 100%; }
+
+    table th:nth-child(3), table td:nth-child(3),
+    table th:nth-child(4), table td:nth-child(4) { display: none; }
+    #tabela-relatorios th:nth-child(3), #tabela-relatorios td:nth-child(3),
+    #tabela-relatorios th:nth-child(4), #tabela-relatorios td:nth-child(4) { display: none; }
+    td { padding: 9px 8px; font-size: 12px; }
+    th { padding: 9px 8px; font-size: 10px; }
+    td:last-child { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; min-width: 80px; }
+
+    .acc-aluno-row { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+    .acc-actions { width: 100%; display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
+    .accordion-header { padding: 12px 12px; }
+    .acc-header-actions { gap: 4px; flex-wrap: wrap; }
+    .acc-header-actions .btn-sm { padding: 5px 8px; font-size: 11px; }
+    .acc-nome { font-size: 13px !important; }
+
+    .modal-overlay { align-items: flex-end; padding: 0; }
+    .modal { width: 100%; max-width: 100%; border-radius: 20px 20px 0 0; max-height: 94vh; margin: 0; }
+    .modal-header { padding: 16px 16px 12px; border-radius: 20px 20px 0 0; }
+    .modal-header h2 { font-size: 16px; }
+    .modal-body { padding: 14px 16px; }
+    .modal-footer { padding: 12px 16px; gap: 8px; }
+    .modal-footer .btn { flex: 1; justify-content: center; }
+
+    .criterio-row { flex-direction: column; gap: 10px; align-items: flex-start; }
+    .criterio-texto { font-size: 13px; }
+    .radio-group { gap: 8px; }
+    .radio-btn { padding: 8px 16px; font-size: 13px; }
+
+    .tabs { width: 100%; }
+    .tab { flex: 1; text-align: center; padding: 8px 6px; font-size: 12px; }
+
+    #tab-relatorio > div:first-child { flex-wrap: wrap; gap: 6px; }
+    #tab-relatorio > div:first-child .btn { flex: 1; justify-content: center; font-size: 12px; }
+
+    .toast { right: 10px; left: 10px; bottom: 14px; justify-content: center; }
+
+    .card-header { flex-wrap: wrap; gap: 8px; padding: 14px 14px; }
+    .card-header h3 { font-size: 14px; }
+    #page-relatorios .card-header { flex-direction: column; align-items: flex-start; }
+    #page-relatorios .card-header > div { width: 100%; }
+    #page-relatorios .card-header select { width: 100%; }
+
+    .turmas-grid { grid-template-columns: 1fr !important; }
+    .legend { flex-direction: column; gap: 6px; }
+    #figura-humana { font-size: 12px; padding: 6px 8px; }
+    .upload-area { padding: 24px 16px; }
+  }
+
+  /* ===================== MOBILE PEQUENO (≤ 380px) ===================== */
+  @media (max-width: 380px) {
+    .stats-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .stat-card .value { font-size: 20px; }
+    .btn-sm { padding: 5px 7px; font-size: 11px; }
+    td:last-child .btn-sm { width: 100%; justify-content: center; }
+  }
 </style>
 </head>
 <body>
@@ -372,10 +487,17 @@
   </div>
 </div>
 
+<div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
 <!-- MAIN -->
 <div class="main">
   <div class="topbar">
-    <h1 id="page-title">Início</h1>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div class="hamburger" id="hamburger" onclick="toggleSidebar()">
+        <span></span><span></span><span></span>
+      </div>
+      <h1 id="page-title">Início</h1>
+    </div>
     <div class="topbar-actions" id="topbar-actions"></div>
   </div>
   <div class="content">
@@ -807,12 +929,28 @@ function setAval(id, val, btn) {
 // ===================== NAVEGAÇÃO =====================
 const pageNames = { dashboard:'Início', turmas:'Turmas', alunos:'Alunos', relatorios:'Relatórios', importar:'Importar CSV' };
 
+function toggleSidebar() {
+  const sidebar  = document.querySelector('.sidebar');
+  const overlay  = document.getElementById('sidebar-overlay');
+  const hamburger = document.getElementById('hamburger');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+  hamburger.classList.toggle('open');
+}
+
+function closeSidebar() {
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebar-overlay').classList.remove('open');
+  document.getElementById('hamburger').classList.remove('open');
+}
+
 function goTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
   document.querySelectorAll('.nav-item')[['dashboard','turmas','alunos','relatorios','importar'].indexOf(page)]?.classList.add('active');
   document.getElementById('page-title').textContent = pageNames[page];
+  closeSidebar();
   if (page === 'dashboard') renderDashboard();
   if (page === 'turmas') renderTurmas();
   if (page === 'alunos') renderAlunos();
