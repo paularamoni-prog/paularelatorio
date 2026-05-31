@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Relatórios CEMEI Vila da Paz</title>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
   :root {
     --verde: #2d6a4f;
@@ -339,12 +340,12 @@
     <h1 class="login-titulo">Relatórios Educação Infantil</h1>
     <p class="login-sub">1º Semestre 2026 · Acesso restrito</p>
     <div class="form-group">
-      <label>Usuário</label>
-      <input type="text" id="login-user" placeholder="Usuário" autocomplete="username">
+      <label>E-mail</label>
+      <input type="email" id="login-user" placeholder="seu@email.com" autocomplete="username">
     </div>
     <div class="form-group">
-      <label>Senha (CPF)</label>
-      <input type="password" id="login-pass" placeholder="Somente números" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+      <label>Senha</label>
+      <input type="password" id="login-pass" placeholder="Sua senha" autocomplete="current-password">
     </div>
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-error" id="login-error">Usuário ou senha incorretos.</div>
@@ -710,14 +711,50 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ===================== SUPABASE =====================
+const { createClient } = supabase;
+let db = null; // inicializado após carregar config.json
+
 // ===================== STATE =====================
-let state = JSON.parse(localStorage.getItem('cemei_state') || 'null') || {
-  turmas: [], alunos: [], avaliacoes: {}, relatorios: {}
-};
+let state = { turmas: [], alunos: [], avaliacoes: {}, relatorios: {} };
 let currentAlunoId = null;
 let currentTab = 'avaliacao';
 
-function saveState() { localStorage.setItem('cemei_state', JSON.stringify(state)); }
+async function loadState() {
+  const [{ data: turmas }, { data: alunos }, { data: avals }, { data: rels }] = await Promise.all([
+    db.from('turmas').select('*'),
+    db.from('alunos').select('*'),
+    db.from('avaliacoes').select('*'),
+    db.from('relatorios').select('*')
+  ]);
+  state.turmas  = turmas  || [];
+  state.alunos  = (alunos || []).map(a => ({ ...a, turmaId: a.turma_id }));
+  state.avaliacoes = {};
+  (avals || []).forEach(av => { state.avaliacoes[av.aluno_id] = av.dados; });
+  state.relatorios = {};
+  (rels  || []).forEach(r  => { state.relatorios[r.aluno_id]  = r.texto; });
+  renderDashboard();
+}
+
+async function saveState() {
+  // Turmas
+  if (state.turmas.length)
+    await db.from('turmas').upsert(state.turmas.map(({ turmaId, ...t }) => t));
+
+  // Alunos — converte turmaId → turma_id
+  if (state.alunos.length)
+    await db.from('alunos').upsert(
+      state.alunos.map(({ turmaId, ...a }) => ({ ...a, turma_id: turmaId }))
+    );
+
+  // Avaliações
+  const avals = Object.entries(state.avaliacoes).map(([aluno_id, dados]) => ({ aluno_id, dados }));
+  if (avals.length) await db.from('avaliacoes').upsert(avals);
+
+  // Relatórios
+  const rels = Object.entries(state.relatorios).map(([aluno_id, texto]) => ({ aluno_id, texto }));
+  if (rels.length) await db.from('relatorios').upsert(rels);
+}
 
 // ===================== CRITÉRIOS =====================
 const CRITERIOS = {
@@ -811,23 +848,28 @@ function openModalTurma(id = null) {
   openModal('modal-turma');
 }
 
-function salvarTurma() {
+async function salvarTurma() {
   const nome = document.getElementById('turma-nome').value.trim();
   if (!nome) { toast('Informe o nome da turma.'); return; }
+  const obj = { nome, faixa: document.getElementById('turma-faixa').value, turno: document.getElementById('turma-turno').value };
   if (editingTurmaId) {
     const t = state.turmas.find(t => t.id === editingTurmaId);
-    t.nome = nome; t.faixa = document.getElementById('turma-faixa').value; t.turno = document.getElementById('turma-turno').value;
+    Object.assign(t, obj);
+    await db.from('turmas').upsert({ id: editingTurmaId, ...obj });
   } else {
-    state.turmas.push({ id: Date.now().toString(), nome, faixa: document.getElementById('turma-faixa').value, turno: document.getElementById('turma-turno').value });
+    const id = Date.now().toString();
+    state.turmas.push({ id, ...obj });
+    await db.from('turmas').insert({ id, ...obj });
   }
-  saveState(); closeModal('modal-turma'); renderTurmas(); toast('Turma salva! ✅');
+  closeModal('modal-turma'); renderTurmas(); toast('Turma salva! ✅');
 }
 
-function excluirTurma(id) {
+async function excluirTurma(id) {
   if (!confirm('Excluir esta turma? Os alunos vinculados também serão removidos.')) return;
   state.turmas = state.turmas.filter(t => t.id !== id);
   state.alunos = state.alunos.filter(a => a.turmaId !== id);
-  saveState(); renderTurmas(); toast('Turma removida.');
+  await db.from('turmas').delete().eq('id', id);
+  renderTurmas(); toast('Turma removida.');
 }
 
 function renderTurmas() {
@@ -908,26 +950,31 @@ function toggleDiag() {
   document.getElementById('diag-group').style.display = document.getElementById('aluno-especial').checked ? '' : 'none';
 }
 
-function salvarAluno() {
+async function salvarAluno() {
   const nome = document.getElementById('aluno-nome').value.trim();
   const turmaId = document.getElementById('aluno-turma').value;
   if (!nome) { toast('Informe o nome do aluno.'); return; }
   if (!turmaId) { toast('Selecione uma turma.'); return; }
   const obj = { nome, turmaId, especial: document.getElementById('aluno-especial').checked, diagnostico: document.getElementById('aluno-diagnostico').value.trim() };
+  const dbObj = { nome: obj.nome, turma_id: obj.turmaId, especial: obj.especial, diagnostico: obj.diagnostico };
   if (editingAlunoId) {
     const a = state.alunos.find(a => a.id === editingAlunoId);
     Object.assign(a, obj);
+    await db.from('alunos').upsert({ id: editingAlunoId, ...dbObj });
   } else {
-    state.alunos.push({ id: Date.now().toString(), ...obj });
+    const id = Date.now().toString();
+    state.alunos.push({ id, ...obj });
+    await db.from('alunos').insert({ id, ...dbObj });
   }
-  saveState(); closeModal('modal-aluno'); renderAlunos(); toast('Aluno salvo! ✅');
+  closeModal('modal-aluno'); renderAlunos(); toast('Aluno salvo! ✅');
 }
 
-function excluirAluno(id) {
+async function excluirAluno(id) {
   if (!confirm('Excluir este aluno?')) return;
   state.alunos = state.alunos.filter(a => a.id !== id);
   delete state.avaliacoes[id]; delete state.relatorios[id];
-  saveState(); renderAlunos(); toast('Aluno removido.');
+  await db.from('alunos').delete().eq('id', id);
+  renderAlunos(); toast('Aluno removido.');
 }
 
 function renderAlunos() {
@@ -992,11 +1039,12 @@ function openAvaliacao(alunoId) {
   openModal('modal-avaliacao');
 }
 
-function salvarAvaliacao() {
+async function salvarAvaliacao() {
   if (!state.avaliacoes[currentAlunoId]) state.avaliacoes[currentAlunoId] = {};
   state.avaliacoes[currentAlunoId].figuraHumana = document.getElementById('figura-humana').value;
   state.avaliacoes[currentAlunoId].obs = document.getElementById('obs-adicionais').value;
-  saveState(); toast('Avaliação salva! ✅'); closeModal('modal-avaliacao'); renderAlunos();
+  await db.from('avaliacoes').upsert({ aluno_id: currentAlunoId, dados: state.avaliacoes[currentAlunoId] });
+  toast('Avaliação salva! ✅'); closeModal('modal-avaliacao'); renderAlunos();
 }
 
 // ===================== IA – GERAR RELATÓRIO =====================
@@ -1063,7 +1111,7 @@ Escreva apenas o parágrafo do relatório, sem título, sem introdução.`;
     const texto = data.content?.[0]?.text || '';
     if (!texto) throw new Error('Resposta vazia');
     state.relatorios[currentAlunoId] = texto;
-    saveState();
+    await db.from('relatorios').upsert({ aluno_id: currentAlunoId, texto, atualizado_em: new Date().toISOString() });
     outDiv.innerHTML = `<div class="relatorio-box">${texto}</div>`;
     document.getElementById('rel-actions').style.display = '';
     toast('Relatório gerado com sucesso! ✅');
@@ -1080,10 +1128,10 @@ function editarRelatorio() {
   document.getElementById('rel-actions').style.display = 'none';
   document.getElementById('relatorio-output').style.display = 'none';
 }
-function salvarTextoEditado() {
+async function salvarTextoEditado() {
   const novo = document.getElementById('rel-texto-editavel').value;
   state.relatorios[currentAlunoId] = novo;
-  saveState();
+  await db.from('relatorios').upsert({ aluno_id: currentAlunoId, texto: novo, atualizado_em: new Date().toISOString() });
   document.getElementById('relatorio-output').innerHTML = `<div class="relatorio-box">${novo}</div>`;
   document.getElementById('relatorio-output').style.display = '';
   document.getElementById('rel-edit-area').style.display = 'none';
@@ -1197,29 +1245,30 @@ function importCSV(input) {
   const file = input.files[0];
   if (!file) return;
   const reader = new FileReader();
-  reader.onload = e => {
+  reader.onload = async e => {
     const lines = e.target.result.split('\n').filter(l => l.trim());
     if (!lines.length) return;
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z_]/g, ''));
     let added = 0, turmasNew = 0;
+    const novasTurmas = [], novosAlunos = [];
     lines.slice(1).forEach(line => {
       const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
       const row = {};
       headers.forEach((h, i) => row[h] = cols[i] || '');
       if (!row.nome) return;
-      // Criar turma se não existe
       let turma = state.turmas.find(t => t.nome.toLowerCase() === (row.turma || '').toLowerCase());
       if (!turma && row.turma) {
         turma = { id: Date.now().toString() + Math.random(), nome: row.turma, faixa: '3 anos', turno: 'Manhã' };
-        state.turmas.push(turma); turmasNew++;
+        state.turmas.push(turma); novasTurmas.push(turma); turmasNew++;
       }
       const ja = state.alunos.find(a => a.nome.toLowerCase() === row.nome.toLowerCase() && a.turmaId === turma?.id);
       if (!ja) {
-        state.alunos.push({ id: Date.now().toString() + Math.random(), nome: row.nome, turmaId: turma?.id || '', especial: (row.educacao_especial || '').toLowerCase() === 'sim', diagnostico: row.diagnostico || '' });
-        added++;
+        const aluno = { id: Date.now().toString() + Math.random(), nome: row.nome, turmaId: turma?.id || '', especial: (row.educacao_especial || '').toLowerCase() === 'sim', diagnostico: row.diagnostico || '' };
+        state.alunos.push(aluno); novosAlunos.push(aluno); added++;
       }
     });
-    saveState();
+    if (novasTurmas.length) await db.from('turmas').insert(novasTurmas);
+    if (novosAlunos.length) await db.from('alunos').insert(novosAlunos.map(({ turmaId, ...a }) => ({ ...a, turma_id: turmaId })));
     document.getElementById('import-result').innerHTML = `<div style="background:var(--verde-menta);border:1.5px solid var(--verde-claro);border-radius:10px;padding:16px;font-size:13px;color:var(--verde-escuro);">
       ✅ Importação concluída!<br><strong>${added}</strong> aluno(s) adicionado(s) · <strong>${turmasNew}</strong> turma(s) criada(s) automaticamente.
     </div>`;
@@ -1242,36 +1291,56 @@ function toast(msg) {
   setTimeout(() => el.classList.remove('show'), 2800);
 }
 
-// ===================== LOGIN =====================
-const LOGIN_USER = 'paula';
-const LOGIN_PASS = '08168338693';
-
-function doLogin() {
-  const u = document.getElementById('login-user').value.trim().toLowerCase();
-  const p = document.getElementById('login-pass').value.trim().replace(/[^0-9]/g,'');
-  const err = document.getElementById('login-error');
-  if (u === LOGIN_USER && p === LOGIN_PASS) {
-    document.getElementById('login-screen').style.display = 'none';
-    sessionStorage.setItem('cemei_logado', '1');
-    err.style.display = 'none';
-  } else {
+// ===================== LOGIN (Supabase Auth) =====================
+async function doLogin() {
+  const email = document.getElementById('login-user').value.trim();
+  const senha = document.getElementById('login-pass').value.trim();
+  const err   = document.getElementById('login-error');
+  const btn   = document.querySelector('.login-btn');
+  btn.textContent = 'Entrando…'; btn.disabled = true;
+  const { error } = await db.auth.signInWithPassword({ email, password: senha });
+  btn.textContent = 'Entrar'; btn.disabled = false;
+  if (error) {
     err.style.display = 'block';
     document.getElementById('login-pass').value = '';
+  } else {
+    document.getElementById('login-screen').style.display = 'none';
+    err.style.display = 'none';
+    await loadState();
   }
 }
 
-function fazerLogout() {
-  sessionStorage.removeItem('cemei_logado');
+// Permitir Enter no campo senha
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+async function fazerLogout() {
+  await db.auth.signOut();
   location.reload();
 }
 
-// Verificar se já está logado
-if (sessionStorage.getItem('cemei_logado') === '1') {
-  document.getElementById('login-screen').style.display = 'none';
-}
-
 // ===================== INIT =====================
-renderDashboard();
+// Carrega config.json → inicializa Supabase → verifica sessão
+(async () => {
+  try {
+    const res = await fetch('./config.json');
+    if (!res.ok) throw new Error('config.json não encontrado');
+    const cfg = await res.json();
+    db = createClient(cfg.supabaseUrl, cfg.supabaseKey);
+  } catch (err) {
+    document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;flex-direction:column;gap:12px;">
+      <div style="font-size:40px;">⚠️</div>
+      <div style="font-size:16px;color:#c1121f;font-weight:700;">Arquivo config.json não encontrado.</div>
+      <div style="font-size:13px;color:#555;">Certifique-se de que config.json está na mesma pasta do index.html.</div>
+    </div>`;
+    return;
+  }
+
+  const { data } = await db.auth.getSession();
+  if (data.session) {
+    document.getElementById('login-screen').style.display = 'none';
+    loadState();
+  }
+})();
 </script>
 </body>
 </html>
