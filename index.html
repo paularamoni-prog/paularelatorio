@@ -1405,17 +1405,10 @@ async function verificarECriarTabelas() {
   // e garante que tem as colunas necessárias.
   try {
     // Tenta fazer um select limitado — se falhar, tabela não existe
-    const { error } = await db.from('planejamentos').select('chave, dados').limit(1);
+    const { error } = await db.from('planejamentos').select('id').limit(1);
     if (error && (error.code === '42P01' || error.message?.includes('does not exist'))) {
-      // Tabela não existe — cria via RPC (requer função no Supabase) ou avisa
       console.warn('Tabela planejamentos não encontrada. Crie-a com o SQL fornecido.');
       toast('⚠️ Tabela "planejamentos" não encontrada no Supabase. Veja o console.');
-    }
-    // Verifica coluna atualizado_em (pode não existir em versões antigas)
-    const { error: err2 } = await db.from('planejamentos').select('atualizado_em').limit(1);
-    if (err2 && err2.message?.includes('atualizado_em')) {
-      // Coluna não existe — tenta adicionar via rpc ou apenas avisa
-      console.warn('Coluna atualizado_em ausente na tabela planejamentos — não é crítico.');
     }
   } catch(e) {
     console.warn('Erro ao verificar tabela planejamentos:', e);
@@ -1437,10 +1430,24 @@ async function loadState() {
   (avals || []).forEach(av => { state.avaliacoes[av.aluno_id] = av.dados; });
   state.relatorios = {};
   (rels  || []).forEach(r  => { state.relatorios[r.aluno_id]  = r.texto; });
-  // Carrega planejamentos
+  // Carrega planejamentos — estrutura real: {ano, mes, tema, semana_idx, semana_id, label, dados (jsonb)}
   planState = {};
   if (!planErr && plans) {
-    plans.forEach(p => { try { planState[p.chave] = JSON.parse(p.dados); } catch(e) {} });
+    plans.forEach(p => {
+      try {
+        const chave = `${p.ano}-${p.mes}`;
+        if (!planState[chave]) planState[chave] = { tema: p.tema || '', semanas: [] };
+        if (p.tema) planState[chave].tema = p.tema;
+        if (p.dados) {
+          // dados é jsonb — já vem como objeto, não precisa de JSON.parse
+          const semDados = (typeof p.dados === 'string') ? JSON.parse(p.dados) : p.dados;
+          const semId = p.semana_id || semDados.id;
+          if (!planState[chave].semanas.find(s => s.id === semId)) {
+            planState[chave].semanas.push(semDados);
+          }
+        }
+      } catch(e) { console.warn('Erro ao parsear planejamento:', e, p); }
+    });
   } else {
     // Fallback: localStorage caso tabela não exista ou retorne erro
     planCarregar();
@@ -3237,30 +3244,55 @@ async function planSalvarSupabase() {
   if (!db) return;
   syncStart();
   try {
-    const rows = Object.entries(planState).map(([chave, dados]) => ({
-      chave,
-      dados: JSON.stringify(dados),
-      atualizado_em: new Date().toISOString()
-    }));
-    if (!rows.length) { syncOk(); return; }
-    const { error } = await db.from('planejamentos').upsert(rows, { onConflict: 'chave' });
-    if (error) {
-      // Tabela não existe ou coluna faltando — mostra SQL para corrigir
-      if (error.code === '42P01' || error.message?.includes('does not exist')) {
-        syncErro();
-        const sql = `-- Execute este SQL no Supabase → SQL Editor:\n\ncreate table if not exists planejamentos (\n  chave text primary key,\n  dados text not null,\n  atualizado_em timestamptz default now()\n);\nalter table planejamentos enable row level security;\ncreate policy if not exists \"Acesso autenticado\" on planejamentos for all using (auth.role() = \'authenticated\');`;
-        console.error('Tabela planejamentos não encontrada.\n' + sql);
-        toast('⚠️ Tabela "planejamentos" ausente no Supabase — veja o console (F12)');
-      } else if (error.message?.includes('atualizado_em')) {
-        // Coluna atualizado_em não existe — tenta sem ela
-        const rowsSemData = Object.entries(planState).map(([chave, dados]) => ({ chave, dados: JSON.stringify(dados) }));
-        const { error: err2 } = await db.from('planejamentos').upsert(rowsSemData, { onConflict: 'chave' });
-        if (err2) { syncErro(); console.error('Erro ao salvar planejamento:', err2); }
-        else syncOk();
+    // Obtém o user_id autenticado (necessário para a tabela com user_id)
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) { syncErro(); return; }
+
+    // Monta uma linha por semana + uma linha de "cabeçalho de mês" (sem semana, só tema)
+    // A tabela usa: user_id, ano, mes, tema, semana_idx, semana_id, label, dados (jsonb)
+    // Conflito: (user_id, ano, mes, semana_id) — usamos semana_id único por semana
+    const rows = [];
+    Object.entries(planState).forEach(([chave, dadosMes]) => {
+      const [anoStr, mesStr] = chave.split('-');
+      const ano = parseInt(anoStr);
+      const mes = parseInt(mesStr);
+      const tema = dadosMes.tema || '';
+      const semanas = dadosMes.semanas || [];
+
+      if (!semanas.length) {
+        // Salva pelo menos o tema mesmo sem semanas
+        rows.push({
+          user_id: user.id,
+          ano, mes, tema,
+          semana_idx: -1,
+          semana_id: `${chave}__tema`,
+          label: '',
+          dados: null,
+          atualizado_em: new Date().toISOString()
+        });
       } else {
-        syncErro();
-        console.error('Erro ao salvar planejamento:', error);
+        semanas.forEach((sem, idx) => {
+          rows.push({
+            user_id: user.id,
+            ano, mes, tema,
+            semana_idx: idx,
+            semana_id: sem.id || `${chave}__${idx}`,
+            label: sem.label || '',
+            dados: sem,
+            atualizado_em: new Date().toISOString()
+          });
+        });
       }
+    });
+
+    if (!rows.length) { syncOk(); return; }
+
+    // Upsert em lotes, conflito na combinação (user_id, ano, mes, semana_id)
+    const { error } = await db.from('planejamentos').upsert(rows, { onConflict: 'user_id,ano,mes,semana_id' });
+    if (error) {
+      syncErro();
+      console.error('Erro ao salvar planejamento:', error.message, error);
+      toast('⚠️ Erro ao salvar planejamento — veja o console (F12)');
     } else {
       syncOk();
     }
