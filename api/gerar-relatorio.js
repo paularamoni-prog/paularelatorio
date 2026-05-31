@@ -1,11 +1,11 @@
-{
+export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método não permitido' });
   }
 
   const ANTHROPIC_KEY = process.env.ANTHROPIC_KEY;
   if (!ANTHROPIC_KEY) {
-    return res.status(500).json({ error: 'Chave Anthropic não configurada.' });
+    return res.status(500).json({ error: 'Chave não configurada.' });
   }
 
   try {
@@ -27,15 +27,14 @@
     });
 
     const data = await response.json();
-
     if (!response.ok) {
-      return res.status(response.status).json({ error: data.error?.message || 'Erro na API Anthropic.' });
+      return res.status(response.status).json({ error: data.error?.message || 'Erro na API.' });
     }
 
     const texto = data.content?.[0]?.text || '';
     return res.status(200).json({ texto });
 
   } catch (err) {
-    return res.status(500).json({ error: 'Erro interno ao gerar relatório.' });
+    return res.status(500).json({ error: 'Erro interno.' });
   }
 }
