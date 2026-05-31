@@ -400,6 +400,17 @@
   }
   .nome-clicavel:hover { color: var(--verde); text-decoration: underline; }
 
+  /* EXPORT CARDS */
+  .exp-card {
+    border: 2px solid var(--cinza-borda); border-radius: 12px; padding: 16px;
+    cursor: pointer; transition: all .15s; background: white; text-align: center;
+  }
+  .exp-card:hover { border-color: var(--verde-claro); background: var(--verde-menta); }
+  .exp-card.sel { border-color: var(--verde); background: var(--verde-menta); box-shadow: 0 0 0 3px rgba(45,106,79,.12); }
+  .exp-card-icon { font-size: 28px; margin-bottom: 6px; }
+  .exp-card-title { font-weight: 700; font-size: 13px; color: var(--verde-escuro); margin-bottom: 4px; }
+  .exp-card-desc { font-size: 11px; color: var(--texto-suave); line-height: 1.4; }
+
   @media print {
     .sidebar, .topbar, .modal-overlay, .toast { display: none !important; }
     .main { margin-left: 0; }
@@ -670,6 +681,7 @@
             </select>
             <button class="btn btn-primary btn-sm" onclick="abrirModalLote()">✨ Gerar em lote</button>
             <button class="btn btn-outline btn-sm" onclick="imprimirLote(document.getElementById('filtro-rel-turma').value)">🖨️ Imprimir turma (PDF)</button>
+            <button class="btn btn-outline btn-sm" onclick="abrirModalExportar()" title="Exportar para Google Sheets">📊 Exportar Sheets</button>
           </div>
         </div>
         <div class="card-body">
@@ -989,6 +1001,61 @@
   </div>
 </div>
 
+
+<!-- MODAL EXPORTAR GOOGLE SHEETS -->
+<div class="modal-overlay" id="modal-exportar">
+  <div class="modal" style="max-width:560px;">
+    <div class="modal-header">
+      <div>
+        <h2>📊 Exportar para Google Sheets</h2>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:3px;" id="exp-subtitulo">Escolha o que exportar</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-exportar')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- filtro turma -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:20px;">
+        <label style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;">Turma</label>
+        <select id="exp-filtro-turma" style="flex:1;padding:9px 12px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;">
+          <option value="">Todas as turmas</option>
+        </select>
+      </div>
+      <!-- opções -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;" id="exp-opcoes">
+        <div class="exp-card sel" id="exp-card-completo" onclick="expSel('completo')">
+          <div class="exp-card-icon">📋</div>
+          <div class="exp-card-title">Avaliações completas</div>
+          <div class="exp-card-desc">Todos os critérios S/D/N de cada aluno</div>
+        </div>
+        <div class="exp-card" id="exp-card-relatorios" onclick="expSel('relatorios')">
+          <div class="exp-card-icon">📝</div>
+          <div class="exp-card-title">Relatórios narrativos</div>
+          <div class="exp-card-desc">Nome, turma e texto do relatório gerado</div>
+        </div>
+        <div class="exp-card" id="exp-card-resumo" onclick="expSel('resumo')">
+          <div class="exp-card-icon">📊</div>
+          <div class="exp-card-title">Resumo por aluno</div>
+          <div class="exp-card-desc">Contagem de S, D e N por aluno</div>
+        </div>
+        <div class="exp-card" id="exp-card-tudo" onclick="expSel('tudo')">
+          <div class="exp-card-icon">🗂️</div>
+          <div class="exp-card-title">Tudo</div>
+          <div class="exp-card-desc">Avaliações + resumo + relatório numa planilha</div>
+        </div>
+      </div>
+      <!-- prévia -->
+      <div style="background:var(--cinza-bg);border:1.5px solid var(--cinza-borda);border-radius:10px;padding:14px;font-size:12px;">
+        <div style="font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;">Prévia das colunas</div>
+        <div id="exp-preview" style="color:var(--texto);font-family:monospace;font-size:11px;line-height:1.8;word-break:break-all;"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-exportar')">Cancelar</button>
+      <button class="btn btn-outline" onclick="expCopiarTSV()" title="Cola direto no Google Sheets com Ctrl+V">📋 Copiar (colar no Sheets)</button>
+      <button class="btn btn-primary" onclick="expBaixarCSV()">⬇ Baixar CSV</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1866,6 +1933,153 @@ async function executarLote() {
   document.getElementById('lote-btn-prox').style.display = 'none';
   loteEmAndamento = false;
   renderRelatorios(); renderAlunos(); renderDashboard();
+}
+
+
+// ===================== EXPORTAR GOOGLE SHEETS =====================
+let expTipo = 'completo';
+
+function abrirModalExportar() {
+  expTipo = 'completo';
+  // popular filtro turma
+  const sel = document.getElementById('exp-filtro-turma');
+  sel.innerHTML = '<option value="">Todas as turmas</option>' +
+    state.turmas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
+  sel.onchange = expAtualizarPreview;
+  expSel('completo');
+  openModal('modal-exportar');
+}
+
+function expSel(tipo) {
+  expTipo = tipo;
+  ['completo','relatorios','resumo','tudo'].forEach(t => {
+    document.getElementById('exp-card-' + t).classList.toggle('sel', t === tipo);
+  });
+  expAtualizarPreview();
+}
+
+function expAtualizarPreview() {
+  const preview = document.getElementById('exp-preview');
+  const cols = expColunas();
+  preview.innerHTML = cols.map((c,i) => `<span style="background:${i%2===0?'#e8f4e8':'#f0f7f0'};padding:1px 6px;border-radius:4px;margin:2px;display:inline-block;">${c}</span>`).join(' ');
+  const turmaId = document.getElementById('exp-filtro-turma').value;
+  const alunos = state.alunos.filter(a => !turmaId || a.turmaId === turmaId);
+  document.getElementById('exp-subtitulo').textContent =
+    `${alunos.length} aluno(s) · ${cols.length} colunas`;
+}
+
+function expColunas() {
+  const base = ['Nome', 'Turma', 'Turno', 'Faixa Etária', 'Ed. Especial', 'Diagnóstico'];
+  if (expTipo === 'relatorios') return [...base, 'Relatório'];
+  if (expTipo === 'resumo') return [...base, 'Total S', 'Total D', 'Total N', 'Critérios Avaliados', 'Status Relatório'];
+  const criteriosCols = [
+    ...CRITERIOS.cognitivos,
+    ...CRITERIOS.motorGrosso,
+    ...CRITERIOS.motorFino,
+    ...CRITERIOS.esquema
+  ].map(c => c.texto.substring(0, 40));
+  const figuraCols = ['Figura Humana'];
+  const obsCols = ['Observações'];
+  if (expTipo === 'completo') return [...base, ...criteriosCols, ...figuraCols, ...obsCols];
+  // tudo
+  return [...base, ...criteriosCols, ...figuraCols, ...obsCols, 'Total S', 'Total D', 'Total N', 'Status Relatório', 'Relatório'];
+}
+
+function expGerarLinhas(sep) {
+  const turmaId = document.getElementById('exp-filtro-turma').value;
+  const alunos = state.alunos
+    .filter(a => !turmaId || a.turmaId === turmaId)
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+
+  const todosCriterios = [
+    ...CRITERIOS.cognitivos,
+    ...CRITERIOS.motorGrosso,
+    ...CRITERIOS.motorFino,
+    ...CRITERIOS.esquema
+  ];
+
+  const figuraMap = {
+    nao_desenvolveu: 'Ainda não desenvolveu',
+    duas_partes: 'Com 2+ partes',
+    tres_partes: 'Com 3+ partes',
+    completa: 'Completa'
+  };
+
+  function esc(val) {
+    if (sep === '\t') return String(val || '').replace(/\t/g, ' ').replace(/\n/g, ' ');
+    const s = String(val || '');
+    if (s.includes(',') || s.includes('"') || s.includes('\n'))
+      return '"' + s.replace(/"/g, '""') + '"';
+    return s;
+  }
+
+  const header = expColunas();
+  const rows = [header.map(esc).join(sep)];
+
+  alunos.forEach(a => {
+    const turma = state.turmas.find(t => t.id === a.turmaId);
+    const aval = state.avaliacoes[a.id] || {};
+    const rel = state.relatorios[a.id] || '';
+    const base = [
+      a.nome,
+      turma ? turma.nome : '',
+      turma ? turma.turno : '',
+      turma ? turma.faixa : '',
+      a.especial ? 'Sim' : 'Não',
+      a.diagnostico || ''
+    ];
+
+    let cS=0, cD=0, cN=0;
+    todosCriterios.forEach(c => {
+      if (aval[c.id]==='S') cS++;
+      else if (aval[c.id]==='D') cD++;
+      else if (aval[c.id]==='N') cN++;
+    });
+
+    if (expTipo === 'relatorios') {
+      rows.push([...base, rel].map(esc).join(sep));
+      return;
+    }
+    if (expTipo === 'resumo') {
+      const avaliados = cS+cD+cN;
+      rows.push([...base, cS, cD, cN, avaliados, rel ? 'Gerado' : 'Pendente'].map(esc).join(sep));
+      return;
+    }
+    // completo ou tudo
+    const criterioVals = todosCriterios.map(c => aval[c.id] || '');
+    const figura = aval.figuraHumana ? (figuraMap[aval.figuraHumana] || aval.figuraHumana) : '';
+    const obs = aval.obs || '';
+    if (expTipo === 'completo') {
+      rows.push([...base, ...criterioVals, figura, obs].map(esc).join(sep));
+    } else {
+      // tudo
+      rows.push([...base, ...criterioVals, figura, obs, cS, cD, cN, rel ? 'Gerado' : 'Pendente', rel].map(esc).join(sep));
+    }
+  });
+
+  return rows.join('\n');
+}
+
+function expBaixarCSV() {
+  const csv = expGerarLinhas(',');
+  const turmaId = document.getElementById('exp-filtro-turma').value;
+  const turma = turmaId ? state.turmas.find(t => t.id === turmaId) : null;
+  const nome = `CEMEI_${expTipo}_${turma ? turma.nome.replace(/\s+/g,'_') : 'todas'}_${new Date().toISOString().slice(0,10)}.csv`;
+  const bom = '\uFEFF'; // BOM para Excel/Sheets reconhecer UTF-8
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = nome;
+  a.click();
+  toast('CSV baixado! Importe no Google Sheets via Arquivo → Importar ✅');
+}
+
+function expCopiarTSV() {
+  const tsv = expGerarLinhas('\t');
+  navigator.clipboard.writeText(tsv).then(() => {
+    toast('Copiado! Cole no Google Sheets com Ctrl+V 📋');
+    closeModal('modal-exportar');
+  }).catch(() => toast('Erro ao copiar. Use "Baixar CSV".'));
 }
 
 // ===================== DASHBOARD =====================
