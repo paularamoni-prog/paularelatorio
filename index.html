@@ -498,7 +498,13 @@
       </div>
       <h1 id="page-title">Início</h1>
     </div>
-    <div class="topbar-actions" id="topbar-actions"></div>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <div id="sync-indicator" style="display:flex;align-items:center;gap:6px;font-size:11px;color:var(--texto-suave);">
+        <span id="sync-dot" style="width:7px;height:7px;border-radius:50%;background:#52b788;display:inline-block;transition:background .4s;"></span>
+        <span id="sync-label">Sincronizado</span>
+      </div>
+      <div class="topbar-actions" id="topbar-actions"></div>
+    </div>
   </div>
   <div class="content">
 
@@ -1183,7 +1189,9 @@ async function salvarAvaliacao() {
   if (!state.avaliacoes[currentAlunoId]) state.avaliacoes[currentAlunoId] = {};
   state.avaliacoes[currentAlunoId].figuraHumana = document.getElementById('figura-humana').value;
   state.avaliacoes[currentAlunoId].obs = document.getElementById('obs-adicionais').value;
+  syncStart();
   await db.from('avaliacoes').upsert({ aluno_id: currentAlunoId, dados: state.avaliacoes[currentAlunoId] });
+  syncOk();
   toast('Avaliação salva! ✅'); closeModal('modal-avaliacao'); renderAlunos();
 }
 
@@ -1196,13 +1204,13 @@ function buildPrompt(aluno, aval, turma) {
   return `Você é a professora auxiliar Paula Ramoni da Silva, da CEMEI Vila da Paz, Contagem/MG. Seu texto será inserido como parte de um relatório maior redigido pela professora regente.
 
 INSTRUÇÕES OBRIGATÓRIAS:
-- Escreva um texto compacto de no máximo 10 linhas (formato A4, margens 1,5cm).
+- Escreva um texto entre 80 e 100 palavras. Seja sintético e objetivo — não detalhe cada item avaliado individualmente, apresente uma visão geral do desenvolvimento da criança.
 - Use linguagem formal, clara e acessível para a família, sem jargões pedagógicos excessivos.
 - Baseie-se EXCLUSIVAMENTE nos dados de avaliação abaixo. Não invente nem suponha informações não registradas.
 - Estruture em parágrafo corrido (sem subtítulos ou listas), abordando na sequência:
-  1. Estágio atual de desenvolvimento da criança (motor fino, motor grosso, cognitivo e esquema corporal).
+  1. Estágio atual de desenvolvimento da criança (síntese do motor fino, motor grosso, cognitivo e esquema corporal — agrupe os aspectos, não liste um a um).
   2. Pontos ainda em desenvolvimento que serão trabalhados na CEMEI, de forma construtiva e respeitosa.
-  3. Breve orientação prática para a família contribuir em casa.
+  3. Breve orientação prática para a família contribuir em casa (1 frase).
 - Use o nome da criança naturalmente ao longo do texto.
 - NÃO inclua título, saudação, assinatura ou introdução. Comece direto pelo relato.
 - Se a criança tem diagnóstico de educação especial, mencione com sensibilidade, focando nas potencialidades.
@@ -1253,7 +1261,9 @@ async function gerarRelatorio() {
     const texto = data.texto || '';
     if (!texto) throw new Error('Resposta vazia');
     state.relatorios[currentAlunoId] = texto;
+    syncStart();
     await db.from('relatorios').upsert({ aluno_id: currentAlunoId, texto, atualizado_em: new Date().toISOString() });
+    syncOk();
     outDiv.innerHTML = `<div class="relatorio-box">${texto}</div>`;
     document.getElementById('rel-actions').style.display = '';
     toast('Relatório gerado com sucesso! ✅');
@@ -1500,6 +1510,29 @@ function downloadCSVModel() {
   const csv = 'nome,turma,educacao_especial,diagnostico\nAna Silva,Turma A - Maternal II,não,\nJoão Santos,Turma B - Jardim I,sim,TEA\nMaria Oliveira,Turma A - Maternal II,não,';
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'modelo_alunos.csv'; a.click();
+}
+
+// ===================== SINCRONIZAÇÃO =====================
+function syncStart() {
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.style.background = '#f9c74f';
+  label.textContent = 'Sincronizando…';
+}
+function syncOk() {
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.style.background = '#52b788';
+  label.textContent = 'Sincronizado';
+}
+function syncErro() {
+  const dot = document.getElementById('sync-dot');
+  const label = document.getElementById('sync-label');
+  if (!dot) return;
+  dot.style.background = '#c1121f';
+  label.textContent = 'Erro ao salvar';
 }
 
 // ===================== TOAST =====================
