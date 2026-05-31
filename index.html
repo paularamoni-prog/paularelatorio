@@ -552,7 +552,7 @@
     </div>
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-error" id="login-error">Usuário ou senha incorretos.</div>
-    <div class="login-footer">Plataforma de uso exclusivo da Prof.ª Paula Ramoni da Silva</div>
+    <div class="login-footer">Plataforma de uso exclusivo da Prof. R2 - PAULA RAMONI DA SILVA</div>
   </div>
 </div>
 
@@ -561,7 +561,7 @@
   <div class="sidebar-logo">
     <div class="escola">CEMEI Vila da Paz · Contagem</div>
     <h2>Relatórios Educação Infantil</h2>
-    <div class="prof">Prof.ª Auxiliar <span>Paula Ramoni da Silva</span></div>
+    <div class="prof">Prof. R2 - <span>PAULA RAMONI DA SILVA</span></div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-item active" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</div>
@@ -2195,8 +2195,7 @@ function renderPrintAlunosList() {
     .filter(a => (!filtro || a.turmaId === filtro) && (!busca || a.nome.toLowerCase().includes(busca)))
     .sort((a, b) => a.nome.localeCompare(b.nome));
 
-  // inicializar seleção se ainda vazia
-  if (!printCardsSel.length) printCardsSel = alunos.map(a => a.id);
+  // NÃO pré-seleciona automaticamente — respeita a seleção atual do usuário
 
   const lista = document.getElementById('print-alunos-lista');
   if (!alunos.length) {
