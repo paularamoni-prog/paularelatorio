@@ -3448,6 +3448,124 @@ function salvarDiaInline(semIdx, di, uid) {
 }
 
 // Versão do initHabDropdown para inline (usa uid string em vez de índice numérico)
+// ===================== HAB GLOBAL HELPERS =====================
+// Estas funções são usadas tanto pelo modal quanto pela view inline
+
+function renderHabList(uid, filtro) {
+  var listEl = document.getElementById('hab-list-' + uid);
+  if (!listEl) return;
+  var q = (filtro || '').toLowerCase().trim();
+  var html = '';
+  BNCC_GRUPOS.forEach(function(g) {
+    var items = BNCC_EI_HABILIDADES.filter(function(h) {
+      return h.cod.indexOf(g.prefixo) !== -1 &&
+        (!q || h.cod.toLowerCase().indexOf(q) !== -1 || h.desc.toLowerCase().indexOf(q) !== -1);
+    });
+    if (!items.length) return;
+    html += '<div class="hab-group-label">' + g.label + '</div>';
+    items.forEach(function(h) {
+      var chk = (habState[uid] || new Set()).has(h.cod);
+      html += '<label class="hab-option' + (chk ? ' selected' : '') + '" onclick="event.stopPropagation()">' +
+        '<input type="checkbox"' + (chk ? ' checked' : '') +
+        ' data-uid="' + uid + '" data-cod="' + h.cod + '">' +
+        '<span class="hab-option-code">' + h.cod + '</span>' +
+        '<span class="hab-option-desc">' + h.desc.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>' +
+        '</label>';
+    });
+  });
+  if (!html) html = '<div style="padding:14px;text-align:center;font-size:12px;color:#aaa;">Nenhuma habilidade encontrada.</div>';
+  listEl.innerHTML = html;
+  listEl.querySelectorAll('input[type=checkbox]').forEach(function(chk) {
+    chk.addEventListener('change', function() {
+      var cod = this.getAttribute('data-cod');
+      var u   = this.getAttribute('data-uid');
+      if (!habState[u]) habState[u] = new Set();
+      if (this.checked) habState[u].add(cod);
+      else habState[u].delete(cod);
+      this.closest('.hab-option').classList.toggle('selected', this.checked);
+      renderHabTrigger(u);
+      // Sincroniza campo direto se existir
+      var directTA = document.getElementById('pdia-cod-direct-' + u);
+      if (directTA) directTA.value = Array.from(habState[u]).join('\n');
+      // Dispara callback se existir
+      var cb = habState['__callback_' + u];
+      if (typeof cb === 'function') cb();
+    });
+  });
+}
+
+function renderHabTrigger(uid) {
+  var trigger = document.getElementById('hab-trigger-' + uid);
+  if (!trigger) return;
+  var sel = Array.from(habState[uid] || []);
+  if (!sel.length) {
+    trigger.innerHTML = '<span class="hab-placeholder">Selecionar…</span>';
+  } else {
+    trigger.innerHTML = sel.map(function(cod) {
+      return '<span class="hab-tag">' + cod + '<span class="hab-tag-remove" data-uid="' + uid + '" data-cod="' + cod + '">×</span></span>';
+    }).join('');
+    trigger.querySelectorAll('.hab-tag-remove').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var u = this.getAttribute('data-uid');
+        var c = this.getAttribute('data-cod');
+        if (habState[u]) habState[u].delete(c);
+        renderHabTrigger(u);
+        renderHabList(u, '');
+        var directTA = document.getElementById('pdia-cod-direct-' + u);
+        if (directTA) directTA.value = Array.from(habState[u] || []).join('\n');
+        var cb = habState['__callback_' + u];
+        if (typeof cb === 'function') cb();
+      });
+    });
+  }
+}
+
+function toggleHabDropdown(uid) {
+  var dropdown = document.getElementById('hab-dropdown-' + uid);
+  var trigger  = document.getElementById('hab-trigger-'  + uid);
+  if (!dropdown) return;
+  var isOpen = dropdown.classList.contains('open');
+  // fecha todos
+  document.querySelectorAll('.hab-dropdown.open').forEach(function(el){ el.classList.remove('open'); });
+  document.querySelectorAll('.hab-trigger.open').forEach(function(el){ el.classList.remove('open'); });
+  if (!isOpen) {
+    dropdown.classList.add('open');
+    if (trigger) trigger.classList.add('open');
+    renderHabList(uid, '');
+    var si = dropdown.querySelector('.hab-search');
+    if (si) { si.value = ''; setTimeout(function(){ si.focus(); }, 40); }
+  }
+}
+
+function filtrarHabilidades(uid, filtro) {
+  renderHabList(uid, filtro);
+}
+
+function adicionarHabCustom(uid) {
+  var ci = document.getElementById('hab-custom-input-' + uid);
+  if (!ci) return;
+  var val = ci.value.trim().toUpperCase();
+  if (!val) return;
+  if (!habState[uid]) habState[uid] = new Set();
+  habState[uid].add(val);
+  ci.value = '';
+  renderHabTrigger(uid);
+  renderHabList(uid, '');
+  var directTA = document.getElementById('pdia-cod-direct-' + uid);
+  if (directTA) directTA.value = Array.from(habState[uid]).join('\n');
+  var cb = habState['__callback_' + uid];
+  if (typeof cb === 'function') cb();
+  toast('"' + val + '" adicionada! ✅');
+}
+
+// initHabDropdown para uso no modal (uid = índice numérico do dia como string/número)
+function initHabDropdown(uid, selecionados) {
+  habState[uid] = new Set(selecionados || []);
+  renderHabList(uid, '');
+  renderHabTrigger(uid);
+}
+
 function initHabDropdownInline(uid, selecionados, semIdx, di) {
   habState[uid] = new Set(selecionados);
   renderHabList(uid, '');
