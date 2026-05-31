@@ -1236,15 +1236,6 @@ async function gerarRelatorio() {
   const aluno = state.alunos.find(a => a.id === currentAlunoId);
   const aval = state.avaliacoes[currentAlunoId] || {};
   const turma = state.turmas.find(t => t.id === aluno.turmaId);
-  const figuraMap = { nao_desenvolveu: 'ainda não desenvolveu esta habilidade', duas_partes: 'representa a figura humana com pelo menos duas partes', tres_partes: 'representa a figura humana com três ou mais partes', completa: 'apresenta representação completa da figura humana (com olhos, boca, cabelo e todas as partes do corpo)' };
-
-  function descCriterio(lista, avalObj) {
-    return lista.map(c => `- ${c.texto}: ${avalObj[c.id] === 'S' ? 'Satisfatório' : avalObj[c.id] === 'D' ? 'Em desenvolvimento' : avalObj[c.id] === 'N' ? 'Não adquirido' : 'Não avaliado'}`).join('\n');
-  }
-
-  const aluno = state.alunos.find(a => a.id === currentAlunoId);
-  const aval = state.avaliacoes[currentAlunoId] || {};
-  const turma = state.turmas.find(t => t.id === aluno.turmaId);
   const prompt = buildPrompt(aluno, aval, turma);
 
   const outDiv = document.getElementById('relatorio-output');
