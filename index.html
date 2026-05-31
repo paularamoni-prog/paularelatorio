@@ -2813,121 +2813,175 @@ const BNCC_GRUPOS = [
   { label: 'ESPAÇOS, TEMPOS, QUANTIDADES, RELAÇÕES E TRANSFORMAÇÕES', prefixo: 'ET' },
 ];
 
-// Estado dos dropdowns de habilidades por índice de dia
+// Estado dos dropdowns de habilidades: uid -> Set de códigos selecionados
 const habState = {};
+// Callbacks: uid -> function() chamada quando habilidades mudam
+const habCallbacks = {};
 
-function initHabDropdown(di, selecionados) {
-  habState[di] = new Set(selecionados);
-  renderHabList(di, '');
-  renderHabTrigger(di);
-}
+/**
+ * Cria e retorna um elemento DOM completo do widget de habilidades.
+ * uid: string única para este widget
+ * selecionados: array de códigos já marcados
+ * onChange: function(codigosArray) chamada quando a seleção muda
+ */
+function criarHabWidget(uid, selecionados, onChange) {
+  habState[uid] = new Set(selecionados || []);
+  habCallbacks[uid] = onChange || function(){};
 
-function toggleHabDropdown(di) {
-  const dd = document.getElementById('hab-dropdown-' + di);
-  if (!dd) return;
-  const isOpen = dd.classList.contains('open');
-  document.querySelectorAll('.hab-dropdown.open').forEach(function(el){ el.classList.remove('open'); });
-  document.querySelectorAll('.hab-trigger.open').forEach(function(el){ el.classList.remove('open'); });
-  if (!isOpen) {
-    dd.classList.add('open');
-    document.getElementById('hab-trigger-' + di).classList.add('open');
-    const s = dd.querySelector('.hab-search');
-    if (s) setTimeout(function(){ s.focus(); }, 50);
-  }
-}
+  var wrapper = document.createElement('div');
+  wrapper.className = 'hab-wrapper';
 
-function renderHabList(di, filtro) {
-  const list = document.getElementById('hab-list-' + di);
-  if (!list) return;
-  const q = (filtro || '').toLowerCase().trim();
-  const sel = habState[di] || new Set();
-  let html = '';
-  BNCC_GRUPOS.forEach(function(g) {
-    const items = BNCC_EI_HABILIDADES.filter(function(h) {
-      return h.cod.includes(g.prefixo) &&
-        (!q || h.cod.toLowerCase().includes(q) || h.desc.toLowerCase().includes(q));
-    });
-    if (!items.length) return;
-    html += '<div class="hab-group-label">' + g.label + '</div>';
-    items.forEach(function(h) {
-      const checked = sel.has(h.cod);
-      html += '<label class="hab-option' + (checked ? ' selected' : '') + '">' +
-        '<input type="checkbox"' + (checked ? ' checked' : '') + ' onchange="toggleHab(\'' + di + '\',\'' + h.cod + '\',this.checked)">' +
-        '<span class="hab-option-code">' + h.cod + '</span>' +
-        '<span class="hab-option-desc">' + h.desc.replace(/'/g,'&#39;') + '</span>' +
-        '</label>';
-    });
+  // Trigger (botão que mostra as tags)
+  var trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'hab-trigger';
+  trigger.style.width = '100%';
+  trigger.innerHTML = '<span class="hab-placeholder">Selecionar habilidade…</span>';
+  trigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    var isOpen = dropdown.classList.contains('open');
+    // fecha todos
+    document.querySelectorAll('.hab-dropdown.open').forEach(function(el){ el.classList.remove('open'); });
+    document.querySelectorAll('.hab-trigger.open').forEach(function(el){ el.classList.remove('open'); });
+    if (!isOpen) {
+      dropdown.classList.add('open');
+      trigger.classList.add('open');
+      searchInput.value = '';
+      renderOpcoes('');
+      setTimeout(function(){ searchInput.focus(); }, 40);
+    }
   });
-  if (!html) html = '<div style="padding:16px;text-align:center;font-size:12px;color:#aaa;">Nenhuma habilidade encontrada.</div>';
-  list.innerHTML = html;
-}
+  wrapper.appendChild(trigger);
 
-function filtrarHabilidades(di, q) {
-  renderHabList(di, q);
-}
+  // Dropdown
+  var dropdown = document.createElement('div');
+  dropdown.className = 'hab-dropdown';
 
-function toggleHab(di, cod, checked) {
-  if (!habState[di]) habState[di] = new Set();
-  if (checked) habState[di].add(cod); else habState[di].delete(cod);
-  renderHabTrigger(di);
-  salvarHabHidden(di);
-  // Callback para inline (salva no planState)
-  if (habState['__callback_' + di]) habState['__callback_' + di]();
-  const list = document.getElementById('hab-list-' + di);
-  if (list) list.querySelectorAll('.hab-option').forEach(function(el) {
-    const inp = el.querySelector('input[type=checkbox]');
-    if (inp) el.classList.toggle('selected', inp.checked);
+  // Campo de busca
+  var searchWrap = document.createElement('div');
+  searchWrap.className = 'hab-search-wrap';
+  var searchInput = document.createElement('input');
+  searchInput.type = 'text';
+  searchInput.className = 'hab-search';
+  searchInput.placeholder = '🔍 Buscar código ou descrição…';
+  searchInput.addEventListener('input', function(){ renderOpcoes(this.value); });
+  searchWrap.appendChild(searchInput);
+  dropdown.appendChild(searchWrap);
+
+  // Campo personalizado
+  var customWrap = document.createElement('div');
+  customWrap.className = 'hab-custom-wrap';
+  var customInput = document.createElement('input');
+  customInput.type = 'text';
+  customInput.className = 'hab-custom-input';
+  customInput.placeholder = 'Código personalizado (Ex: EI02CG05)…';
+  customInput.addEventListener('keydown', function(e){
+    if (e.key === 'Enter') { e.preventDefault(); addCustom(); }
   });
-}
+  var customBtn = document.createElement('button');
+  customBtn.type = 'button';
+  customBtn.className = 'hab-custom-btn';
+  customBtn.textContent = '+ Add';
+  customBtn.addEventListener('click', addCustom);
+  customWrap.appendChild(customInput);
+  customWrap.appendChild(customBtn);
+  dropdown.appendChild(customWrap);
 
-function adicionarHabCustom(di) {
-  const input = document.getElementById('hab-custom-input-' + di);
-  if (!input) return;
-  const val = input.value.trim().toUpperCase();
-  if (!val) { toast('Digite um código para adicionar.'); return; }
-  if (!habState[di]) habState[di] = new Set();
-  habState[di].add(val);
-  input.value = '';
-  renderHabTrigger(di);
-  salvarHabHidden(di);
-  if (habState['__callback_' + di]) habState['__callback_' + di]();
-  toast('"' + val + '" adicionada! ✅');
-}
+  // Lista de opções
+  var listEl = document.createElement('div');
+  listEl.className = 'hab-list';
+  dropdown.appendChild(listEl);
 
-function renderHabTrigger(di) {
-  const trigger = document.getElementById('hab-trigger-' + di);
-  if (!trigger) return;
-  const sel = habState[di] || new Set();
-  if (sel.size === 0) {
-    trigger.innerHTML = '<span class="hab-placeholder">Selecionar…</span>';
-    return;
+  wrapper.appendChild(dropdown);
+
+  // ---- funções internas ----
+  function renderOpcoes(filtro) {
+    var q = (filtro || '').toLowerCase().trim();
+    var html = '';
+    BNCC_GRUPOS.forEach(function(g) {
+      var items = BNCC_EI_HABILIDADES.filter(function(h) {
+        return h.cod.indexOf(g.prefixo) !== -1 &&
+          (!q || h.cod.toLowerCase().indexOf(q) !== -1 || h.desc.toLowerCase().indexOf(q) !== -1);
+      });
+      if (!items.length) return;
+      html += '<div class="hab-group-label">' + g.label + '</div>';
+      items.forEach(function(h) {
+        var chk = habState[uid].has(h.cod);
+        // encode uid e cod para uso seguro no onclick inline
+        var safeUid = uid.replace(/'/g, "\\'");
+        var safeCod = h.cod.replace(/'/g, "\\'");
+        html += '<label class="hab-option' + (chk ? ' selected' : '') + '" onclick="event.stopPropagation()">' +
+          '<input type="checkbox"' + (chk ? ' checked' : '') +
+          ' data-uid="' + uid + '" data-cod="' + h.cod + '">' +
+          '<span class="hab-option-code">' + h.cod + '</span>' +
+          '<span class="hab-option-desc">' + h.desc.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</span>' +
+          '</label>';
+      });
+    });
+    if (!html) html = '<div style="padding:14px;text-align:center;font-size:12px;color:#aaa;">Nenhuma habilidade encontrada.</div>';
+    listEl.innerHTML = html;
+    // Bind checkboxes via addEventListener (sem inline handlers problemáticos)
+    listEl.querySelectorAll('input[type=checkbox]').forEach(function(chk) {
+      chk.addEventListener('change', function() {
+        var cod = this.getAttribute('data-cod');
+        if (this.checked) habState[uid].add(cod);
+        else habState[uid].delete(cod);
+        // Atualiza visual do label
+        this.closest('.hab-option').classList.toggle('selected', this.checked);
+        atualizarTrigger();
+        disparaChange();
+      });
+    });
   }
-  trigger.innerHTML = Array.from(sel).map(function(cod) {
-    return '<span class="hab-tag">' + cod + '<span class="hab-tag-remove" onclick="event.stopPropagation();removerHab(\'' + di + '\',\'' + cod + '\')">×</span></span>';
-  }).join('');
-}
 
-function removerHab(di, cod) {
-  if (habState[di]) habState[di].delete(cod);
-  renderHabTrigger(di);
-  salvarHabHidden(di);
-  if (habState['__callback_' + di]) habState['__callback_' + di]();
-  renderHabList(di, '');
-}
+  function addCustom() {
+    var val = customInput.value.trim().toUpperCase();
+    if (!val) return;
+    habState[uid].add(val);
+    customInput.value = '';
+    atualizarTrigger();
+    renderOpcoes(searchInput.value);
+    disparaChange();
+    toast('"' + val + '" adicionada! ✅');
+  }
 
-function salvarHabHidden(di) {
-  // Tenta hidden do modal (pdia-cod-N)
-  var hidden = document.getElementById('pdia-cod-' + di);
-  // Ou hidden do inline (sl-cod-uid)
-  if (!hidden) hidden = document.getElementById('sl-cod-' + di);
-  if (hidden) hidden.value = Array.from(habState[di] || []).join('\n');
+  function atualizarTrigger() {
+    var sel = Array.from(habState[uid]);
+    if (!sel.length) {
+      trigger.innerHTML = '<span class="hab-placeholder">Selecionar habilidade…</span>';
+    } else {
+      trigger.innerHTML = sel.map(function(cod) {
+        return '<span class="hab-tag">' + cod +
+          '<span class="hab-tag-remove">×</span></span>';
+      }).join('');
+      // Bind remoção
+      trigger.querySelectorAll('.hab-tag-remove').forEach(function(btn, i) {
+        btn.addEventListener('click', function(e) {
+          e.stopPropagation();
+          habState[uid].delete(sel[i]);
+          atualizarTrigger();
+          renderOpcoes(searchInput.value);
+          disparaChange();
+        });
+      });
+    }
+  }
+
+  function disparaChange() {
+    habCallbacks[uid](Array.from(habState[uid]));
+  }
+
+  // Renderiza estado inicial
+  atualizarTrigger();
+
+  return wrapper;
 }
 
 // Fechar dropdowns ao clicar fora
-document.addEventListener('click', e => {
+document.addEventListener('click', function(e) {
   if (!e.target.closest('.hab-wrapper')) {
-    document.querySelectorAll('.hab-dropdown.open').forEach(el => el.classList.remove('open'));
-    document.querySelectorAll('.hab-trigger.open').forEach(el => el.classList.remove('open'));
+    document.querySelectorAll('.hab-dropdown.open').forEach(function(el){ el.classList.remove('open'); });
+    document.querySelectorAll('.hab-trigger.open').forEach(function(el){ el.classList.remove('open'); });
   }
 });
 
