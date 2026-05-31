@@ -835,7 +835,8 @@
 <script>
 // ===================== SUPABASE =====================
 const { createClient } = supabase;
-let db = null; // inicializado após carregar config.json
+let db = null;          // inicializado após carregar config.json
+let ANTHROPIC_KEY = ''; // idem
 
 // ===================== STATE =====================
 let state = { turmas: [], alunos: [], avaliacoes: {}, relatorios: {} };
@@ -1238,7 +1239,7 @@ Escreva apenas o parágrafo do relatório, sem título, sem introdução.`;
   try {
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': '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', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1000,
@@ -1464,6 +1465,7 @@ async function fazerLogout() {
     if (!res.ok) throw new Error('config.json não encontrado');
     const cfg = await res.json();
     db = createClient(cfg.supabaseUrl, cfg.supabaseKey);
+    ANTHROPIC_KEY = cfg.anthropicKey || '';
   } catch (err) {
     document.body.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:sans-serif;flex-direction:column;gap:12px;">
       <div style="font-size:40px;">⚠️</div>
