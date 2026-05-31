@@ -876,7 +876,7 @@
           </div>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-outline" onclick="abrirPickerSemana()">+ Adicionar / Editar Semana</button>
+          <button class="btn btn-outline" onclick="abrirPickerSemana()">+ Adicionar Semana</button>
           <button class="btn btn-primary" onclick="gerarPDFPlanejamento()">🖨️ Gerar PDF</button>
         </div>
       </div>
@@ -3087,30 +3087,6 @@ function abrirPickerSemana() {
   const jaIds = planState[key].semanas.map(s => s.id);
   const cont = document.getElementById('picker-semanas-auto');
   cont.innerHTML = '';
-
-  // Semanas já cadastradas (para edição)
-  if (planState[key].semanas.length) {
-    var secTitulo = document.createElement('div');
-    secTitulo.style.cssText = 'font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;';
-    secTitulo.textContent = '✏️ Semanas cadastradas — clique para editar';
-    cont.appendChild(secTitulo);
-
-    planState[key].semanas.forEach(function(sem, idx) {
-      var btn = document.createElement('button');
-      btn.className = 'btn btn-outline btn-sm';
-      btn.style.cssText = 'width:100%;justify-content:flex-start;margin-bottom:6px;border-color:var(--verde-claro);color:var(--verde-escuro);';
-      btn.textContent = '✏️ ' + sem.label;
-      btn.addEventListener('click', (function(i) { return function() {
-        closeModal('modal-picker-semana');
-        setTimeout(function() { editarSemana(i); }, 80);
-      }; })(idx));
-      cont.appendChild(btn);
-    });
-
-    var divider = document.createElement('div');
-    divider.style.cssText = 'height:1px;background:var(--cinza-borda);margin:12px 0;';
-    cont.appendChild(divider);
-  }
 
   // Semanas do mês (novas)
   var secNovaTitulo = document.createElement('div');
