@@ -532,6 +532,15 @@
     td:last-child .btn-sm { width: 100%; justify-content: center; }
   }
 
+
+  .tema-opt {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; cursor: pointer; font-size: 13px;
+    color: var(--texto); transition: background .15s;
+  }
+  .tema-opt:hover { background: var(--verde-menta); }
+  .tema-opt input[type=checkbox] { accent-color: var(--verde); width:15px; height:15px; cursor:pointer; }
+
   /* PLANEJAMENTO */
   .semana-card {
     background: white; border-radius: var(--radius); box-shadow: var(--shadow);
@@ -771,12 +780,33 @@
             <option value="11">Novembro</option><option value="12">Dezembro</option>
           </select>
           <select id="plan-ano" style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;" onchange="renderSemanasList()">
-            <option value="2025">2025</option><option value="2026" selected>2026</option><option value="2027">2027</option>
+            <option value="2026" selected>2026</option><option value="2027">2027</option>
           </select>
-          <input type="text" id="plan-tema" placeholder="Tema do mês (ex: Cinco Sentidos – Olfato)" style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;width:280px;">
+          <div style="position:relative;" id="plan-tema-wrapper">
+            <button type="button" id="plan-tema-btn" onclick="toggleTemaDropdown()"
+              style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;cursor:pointer;min-width:260px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;">
+              <span id="plan-tema-label" style="color:#999;">Tema do mês…</span>
+              <span style="font-size:10px;color:#aaa;">▾</span>
+            </button>
+            <div id="plan-tema-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:white;border:1.5px solid var(--cinza-borda);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:10px 0;min-width:280px;">
+              <div style="padding:4px 14px 8px;font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:1px;">Cinco Sentidos</div>
+              <label class="tema-opt"><input type="checkbox" value="Visão" onchange="atualizarTemaLabel()"> 👁️ Visão</label>
+              <label class="tema-opt"><input type="checkbox" value="Audição" onchange="atualizarTemaLabel()"> 👂 Audição</label>
+              <label class="tema-opt"><input type="checkbox" value="Olfato" onchange="atualizarTemaLabel()"> 👃 Olfato</label>
+              <label class="tema-opt"><input type="checkbox" value="Paladar" onchange="atualizarTemaLabel()"> 👅 Paladar</label>
+              <label class="tema-opt"><input type="checkbox" value="Tato" onchange="atualizarTemaLabel()"> ✋ Tato</label>
+              <div style="height:1px;background:var(--cinza-borda);margin:8px 0;"></div>
+              <div style="padding:4px 14px 8px;font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:1px;">Outros temas</div>
+              <label class="tema-opt"><input type="checkbox" value="Identidade e Família" onchange="atualizarTemaLabel()"> 👨‍👩‍👧 Identidade e Família</label>
+              <label class="tema-opt"><input type="checkbox" value="Natureza e Meio Ambiente" onchange="atualizarTemaLabel()"> 🌿 Natureza e Meio Ambiente</label>
+              <label class="tema-opt"><input type="checkbox" value="Corpo Humano" onchange="atualizarTemaLabel()"> 🧍 Corpo Humano</label>
+              <label class="tema-opt"><input type="checkbox" value="Movimento e Expressão" onchange="atualizarTemaLabel()"> 🎨 Movimento e Expressão</label>
+              <label class="tema-opt"><input type="checkbox" value="Festa da Família" onchange="atualizarTemaLabel()"> 🎉 Festa da Família</label>
+            </div>
+          </div>
         </div>
         <div style="display:flex;gap:8px;">
-          <button class="btn btn-outline" onclick="adicionarSemana()">+ Adicionar Semana</button>
+          <button class="btn btn-outline" onclick="abrirPickerSemana()">+ Adicionar Semana</button>
           <button class="btn btn-primary" onclick="gerarPDFPlanejamento()">🖨️ Gerar PDF</button>
         </div>
       </div>
@@ -789,7 +819,7 @@
         <div class="empty-state">
           <div class="icon">📋</div>
           <p>Nenhuma semana cadastrada para este mês.</p>
-          <button class="btn btn-primary" style="margin-top:16px;" onclick="adicionarSemana()">+ Adicionar Primeira Semana</button>
+          <button class="btn btn-primary" style="margin-top:16px;" onclick="abrirPickerSemana()">+ Adicionar Primeira Semana</button>
         </div>
       </div>
     </div>
@@ -815,6 +845,44 @@
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-planejamento-semana')">Fechar</button>
       <button class="btn btn-primary" onclick="salvarSemanaModal()">💾 Salvar Semana</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL PICKER DE SEMANA -->
+<div class="modal-overlay" id="modal-picker-semana">
+  <div class="modal" style="max-width:480px;">
+    <div class="modal-header">
+      <h2>📅 Selecionar Período da Semana</h2>
+      <button class="modal-close" onclick="closeModal('modal-picker-semana')">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--texto-suave);margin-bottom:16px;">
+        Escolha uma das semanas disponíveis do mês ou defina um período personalizado.
+      </p>
+      <!-- Semanas automáticas do mês -->
+      <div id="picker-semanas-auto" style="margin-bottom:20px;"></div>
+      <!-- Período personalizado -->
+      <div style="border:1.5px solid var(--cinza-borda);border-radius:10px;padding:16px;">
+        <div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px;">📆 Período personalizado</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div class="form-group">
+            <label>Data início</label>
+            <input type="date" id="picker-inicio" style="padding:9px 12px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:var(--cinza-bg);width:100%;">
+          </div>
+          <div class="form-group">
+            <label>Data fim</label>
+            <input type="date" id="picker-fim" style="padding:9px 12px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:var(--cinza-bg);width:100%;">
+          </div>
+        </div>
+        <button class="btn btn-outline" style="margin-top:12px;width:100%;justify-content:center;" onclick="confirmarPeriodoCustom()">
+          ✅ Usar período personalizado
+        </button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-picker-semana')">Cancelar</button>
     </div>
   </div>
 </div>
@@ -2382,6 +2450,15 @@ function abrirJanelaImpressao(lista, opts) {
       .no-print { display: none !important; }
     }
   
+
+  .tema-opt {
+    display: flex; align-items: center; gap: 10px;
+    padding: 8px 14px; cursor: pointer; font-size: 13px;
+    color: var(--texto); transition: background .15s;
+  }
+  .tema-opt:hover { background: var(--verde-menta); }
+  .tema-opt input[type=checkbox] { accent-color: var(--verde); width:15px; height:15px; cursor:pointer; }
+
   /* PLANEJAMENTO */
   .semana-card {
     background: white; border-radius: var(--radius); box-shadow: var(--shadow);
@@ -2567,6 +2644,133 @@ function expCopiarTSV() {
 }
 
 
+
+// ===================== TEMA MULTISELECT =====================
+function toggleTemaDropdown() {
+  const dd = document.getElementById('plan-tema-dropdown');
+  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
+}
+// fechar ao clicar fora
+document.addEventListener('click', e => {
+  const wrapper = document.getElementById('plan-tema-wrapper');
+  if (wrapper && !wrapper.contains(e.target)) {
+    const dd = document.getElementById('plan-tema-dropdown');
+    if (dd) dd.style.display = 'none';
+  }
+});
+function atualizarTemaLabel() {
+  const checks = document.querySelectorAll('#plan-tema-dropdown input[type=checkbox]:checked');
+  const temas = Array.from(checks).map(c => c.value);
+  const label = document.getElementById('plan-tema-label');
+  if (temas.length === 0) {
+    label.textContent = 'Tema do mês…';
+    label.style.color = '#999';
+  } else {
+    label.textContent = temas.join(' · ');
+    label.style.color = 'var(--texto)';
+  }
+}
+function getTemaAtual() {
+  const checks = document.querySelectorAll('#plan-tema-dropdown input[type=checkbox]:checked');
+  return Array.from(checks).map(c => c.value).join(' · ');
+}
+function setTemaDropdown(temaStr) {
+  // Desmarca todos
+  document.querySelectorAll('#plan-tema-dropdown input[type=checkbox]').forEach(c => c.checked = false);
+  if (!temaStr) { atualizarTemaLabel(); return; }
+  const partes = temaStr.split(' · ');
+  document.querySelectorAll('#plan-tema-dropdown input[type=checkbox]').forEach(c => {
+    if (partes.includes(c.value)) c.checked = true;
+  });
+  atualizarTemaLabel();
+}
+
+// ===================== PICKER DE SEMANA =====================
+function abrirPickerSemana() {
+  const key = planKey();
+  const mes = parseInt(document.getElementById('plan-mes').value);
+  const ano = parseInt(document.getElementById('plan-ano').value);
+  if (!planState[key]) planState[key] = { tema: '', semanas: [] };
+
+  const todasSemanas = gerarSemanasDoPeriodo(mes, ano);
+  const jaIds = planState[key].semanas.map(s => s.id);
+
+  const cont = document.getElementById('picker-semanas-auto');
+  if (!todasSemanas.length) {
+    cont.innerHTML = '<p style="font-size:13px;color:var(--texto-suave);">Nenhuma semana encontrada para este mês.</p>';
+  } else {
+    cont.innerHTML = '<div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">📋 Semanas do mês</div>' +
+      todasSemanas.map(sem => {
+        const jaAdicionada = jaIds.includes(sem.id);
+        return `<button class="btn ${jaAdicionada ? 'btn-outline' : 'btn-primary'} btn-sm"
+          style="width:100%;justify-content:flex-start;margin-bottom:8px;${jaAdicionada ? 'opacity:.5;cursor:default;' : ''}"
+          ${jaAdicionada ? 'disabled' : `onclick="confirmarSemanaAuto('${sem.id}')"`}>
+          📅 ${sem.label} ${jaAdicionada ? '(já adicionada)' : ''}
+        </button>`;
+      }).join('');
+  }
+
+  // Pre-preencher datas do período personalizado com o mês atual
+  const primeiroDia = new Date(ano, mes - 1, 1);
+  const ultimoDia  = new Date(ano, mes, 0);
+  document.getElementById('picker-inicio').value = primeiroDia.toISOString().slice(0,10);
+  document.getElementById('picker-fim').value    = ultimoDia.toISOString().slice(0,10);
+
+  openModal('modal-picker-semana');
+}
+
+function confirmarSemanaAuto(semId) {
+  const key = planKey();
+  const mes = parseInt(document.getElementById('plan-mes').value);
+  const ano = parseInt(document.getElementById('plan-ano').value);
+  const todasSemanas = gerarSemanasDoPeriodo(mes, ano);
+  const sem = todasSemanas.find(s => s.id === semId);
+  if (!sem) return;
+  planState[key].semanas.push(JSON.parse(JSON.stringify(sem)));
+  planEditandoSemanaIdx = planState[key].semanas.length - 1;
+  closeModal('modal-picker-semana');
+  abrirModalSemana(planEditandoSemanaIdx);
+}
+
+function confirmarPeriodoCustom() {
+  const key = planKey();
+  const mes = parseInt(document.getElementById('plan-mes').value);
+  const ano = parseInt(document.getElementById('plan-ano').value);
+  const inicioStr = document.getElementById('picker-inicio').value;
+  const fimStr    = document.getElementById('picker-fim').value;
+  if (!inicioStr || !fimStr) { toast('Preencha as duas datas.'); return; }
+  const inicio = new Date(inicioStr + 'T12:00:00');
+  const fim    = new Date(fimStr    + 'T12:00:00');
+  if (fim < inicio) { toast('A data fim deve ser igual ou posterior ao início.'); return; }
+
+  const dias = [];
+  const cur = new Date(inicio);
+  while (cur <= fim) {
+    const dw = cur.getDay();
+    if (dw >= 1 && dw <= 5) { // seg a sex
+      dias.push({
+        data: `${String(cur.getDate()).padStart(2,'0')}/${String(cur.getMonth()+1).padStart(2,'0')}/${String(cur.getFullYear()).slice(-2)}`,
+        diasemana: DIAS_SEMANA[dw],
+        cod: '', atividades: '', recurso: '', obs: ''
+      });
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  if (!dias.length) { toast('Nenhum dia útil no período selecionado.'); return; }
+
+  const fmt = d => `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}/${String(d.getFullYear()).slice(-2)}`;
+  const sem = {
+    id: 'sem_custom_' + Date.now(),
+    label: `${fmt(inicio)} a ${fmt(fim)}`,
+    dias
+  };
+  planState[key].semanas.push(sem);
+  planEditandoSemanaIdx = planState[key].semanas.length - 1;
+  closeModal('modal-picker-semana');
+  abrirModalSemana(planEditandoSemanaIdx);
+}
+
+
 // ===================== PLANEJAMENTO SEMANAL =====================
 const MESES_NOME = ['','Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -2583,7 +2787,7 @@ function planKey() {
 function initPlanejamento() {
   const key = planKey();
   const tema = (planState[key] || {}).tema || '';
-  document.getElementById('plan-tema').value = tema;
+  setTemaDropdown(tema);
   renderSemanasList();
 }
 
@@ -2755,7 +2959,7 @@ function abrirModalSemana(idx) {
 
 function salvarSemanaModal() {
   const key = planKey();
-  const tema = document.getElementById('plan-tema').value.trim();
+  const tema = getTemaAtual();
   planState[key].tema = tema;
   const sem = planState[key].semanas[planEditandoSemanaIdx];
   sem.dias.forEach((dia, di) => {
@@ -2779,7 +2983,7 @@ function gerarPDFPlanejamento() {
     toast('Adicione ao menos uma semana antes de gerar o PDF.');
     return;
   }
-  const tema = document.getElementById('plan-tema').value.trim() || 'Planejamento Semanal';
+  const tema = getTemaAtual() || 'Planejamento Semanal';
   const win = window.open('', '_blank');
 
   const paginasSemanas = dadosMes.semanas.map((sem, si) => {
