@@ -552,7 +552,7 @@
     </div>
     <button class="login-btn" onclick="doLogin()">Entrar</button>
     <div class="login-error" id="login-error">Usuário ou senha incorretos.</div>
-    <div class="login-footer">Plataforma de uso exclusivo da Prof. R2 - PAULA RAMONI DA SILVA</div>
+    <div class="login-footer">Plataforma de uso exclusivo da Prof.ª R2 - PAULA RAMONI DA SILVA</div>
   </div>
 </div>
 
@@ -561,7 +561,7 @@
   <div class="sidebar-logo">
     <div class="escola">CEMEI Vila da Paz · Contagem</div>
     <h2>Relatórios Educação Infantil</h2>
-    <div class="prof">Prof. R2 - <span>PAULA RAMONI DA SILVA</span></div>
+    <div class="prof">Prof.ª R2 - <span>PAULA RAMONI DA SILVA</span></div>
   </div>
   <nav class="sidebar-nav">
     <div class="nav-item active" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</div>
@@ -2063,7 +2063,7 @@ function gerarHTMLCardImpressao(aluno, opts) {
       </tr>`;
     }).join('');
 
-    return `<div style="margin-bottom:12pt;">
+    return `<div style="margin-bottom:12pt;break-inside:avoid;page-break-inside:avoid;">
       <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">${area.emoji} ${area.label}</div>
       <table style="width:100%;border-collapse:collapse;border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;overflow:hidden;">
         <thead>
@@ -2095,10 +2095,10 @@ function gerarHTMLCardImpressao(aluno, opts) {
 
   return `
     <!-- CABEÇALHO DO CARD -->
-    <div style="border:2.5px solid #2d6a4f;border-radius:12pt;overflow:hidden;margin-bottom:0;page-break-inside:avoid;">
+    <div style="border:2.5px solid #2d6a4f;border-radius:12pt;margin-bottom:0;">
 
       <!-- Topo verde -->
-      <div style="background:#1b4332;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="background:#1b4332;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;break-inside:avoid;page-break-inside:avoid;">
         <div>
           <div style="color:#52b788;font-size:8pt;letter-spacing:2px;text-transform:uppercase;font-weight:700;">CEMEI Vila da Paz · Contagem/MG</div>
           <div style="color:white;font-size:15pt;font-weight:700;font-family:Georgia,serif;margin-top:2px;">${aluno.nome}</div>
@@ -2109,7 +2109,7 @@ function gerarHTMLCardImpressao(aluno, opts) {
         </div>
         <div style="text-align:right;">
           <div style="color:rgba(255,255,255,.5);font-size:8pt;">1º Semestre 2026</div>
-          <div style="color:rgba(255,255,255,.5);font-size:8pt;margin-top:4px;">Prof.ª Paula Ramoni</div>
+          <div style="color:rgba(255,255,255,.5);font-size:8pt;margin-top:4px;">Prof.ª R2 - PAULA RAMONI</div>
           <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">
             <span style="background:${cS>0?'#d8f3dc':'#f0f0f0'};color:${cS>0?'#1b4332':'#aaa'};padding:3px 8px;border-radius:6px;font-size:9pt;font-weight:700;">${cS} S</span>
             <span style="background:${cD>0?'#fef3e2':'#f0f0f0'};color:${cD>0?'#a05c00':'#aaa'};padding:3px 8px;border-radius:6px;font-size:9pt;font-weight:700;">${cD} D</span>
@@ -2122,7 +2122,7 @@ function gerarHTMLCardImpressao(aluno, opts) {
       <div style="padding:14px 16px;background:white;">
 
         <!-- Legenda -->
-        ${opts.aval ? `<div style="display:flex;gap:16px;margin-bottom:12pt;font-size:8.5pt;color:#5a7a68;">
+        ${opts.aval ? `<div style="display:flex;gap:16px;margin-bottom:12pt;font-size:8.5pt;color:#5a7a68;break-inside:avoid;page-break-inside:avoid;">
           <span><strong style="color:#2d6a4f;">S</strong> = Satisfatório (70–100%)</span>
           <span><strong style="color:#e9891a;">D</strong> = Em desenvolvimento (50–70%)</span>
           <span><strong style="color:#c1121f;">N</strong> = Não adquirido (&lt;50%)</span>
@@ -2133,18 +2133,18 @@ function gerarHTMLCardImpressao(aluno, opts) {
         ${opts.aval ? areasBlocos : ''}
 
         <!-- Figura humana -->
-        ${opts.aval && aval.figuraHumana ? `<div style="margin-bottom:12pt;padding:8px 12px;background:#f8f8f8;border-radius:8px;border:1px solid #e0e0e0;font-size:9.5pt;">
+        ${opts.aval && aval.figuraHumana ? `<div style="margin-bottom:12pt;padding:8px 12px;background:#f8f8f8;border-radius:8px;border:1px solid #e0e0e0;font-size:9.5pt;break-inside:avoid;page-break-inside:avoid;">
           <strong style="color:#1b4332;">🎨 Figura Humana:</strong> ${figuraMap[aval.figuraHumana] || aval.figuraHumana}
         </div>` : ''}
 
         <!-- Relatório narrativo -->
-        ${opts.rel && rel ? `<div style="margin-bottom:14pt;">
+        ${opts.rel && rel ? `<div style="margin-bottom:14pt;break-inside:avoid;page-break-inside:avoid;">
           <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">📝 Relatório Narrativo</div>
           <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:10px 12px;font-size:10pt;line-height:1.7;font-family:Georgia,serif;color:#1c2e26;background:#fafff9;">${rel}</div>
         </div>` : ''}
 
         <!-- Presença semanal -->
-        ${opts.presenca ? `<div style="margin-bottom:14pt;">
+        ${opts.presenca ? `<div style="margin-bottom:14pt;break-inside:avoid;page-break-inside:avoid;">
           <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">📅 Acompanhamento de Presença / Participação</div>
           <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:10px 12px;">
             ${tabelaSemanas}
@@ -2152,7 +2152,7 @@ function gerarHTMLCardImpressao(aluno, opts) {
         </div>` : ''}
 
         <!-- Anotações livres -->
-        ${opts.obs ? `<div>
+        ${opts.obs ? `<div style="break-inside:avoid;page-break-inside:avoid;">
           <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">🗒️ Observações e Anotações do Dia a Dia</div>
           <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:12px 12px 6px;">
             ${linhasAnotacao}
