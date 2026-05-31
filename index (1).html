@@ -1,0 +1,1277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Relatórios CEMEI Vila da Paz</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --verde: #2d6a4f;
+    --verde-claro: #52b788;
+    --verde-menta: #d8f3dc;
+    --verde-escuro: #1b4332;
+    --laranja: #f4845f;
+    --amarelo: #f9c74f;
+    --cinza-bg: #f7f9f8;
+    --cinza-borda: #e0e9e4;
+    --texto: #1c2e26;
+    --texto-suave: #5a7a68;
+    --branco: #ffffff;
+    --satisfatorio: #2d6a4f;
+    --desenvolvimento: #e9891a;
+    --nao-adquirido: #c1121f;
+    --shadow: 0 4px 24px rgba(45,106,79,0.10);
+    --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cinza-bg);
+    color: var(--texto);
+    min-height: 100vh;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; width: 240px;
+    background: var(--verde-escuro);
+    display: flex; flex-direction: column;
+    z-index: 100;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.12);
+  }
+  .sidebar-logo {
+    padding: 28px 20px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.10);
+  }
+  .sidebar-logo .escola { color: var(--verde-claro); font-size: 10px; letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
+  .sidebar-logo h2 { color: white; font-family: 'Lora', serif; font-size: 16px; line-height: 1.3; margin-top: 4px; }
+  .sidebar-logo .prof { color: rgba(255,255,255,0.55); font-size: 11px; margin-top: 8px; }
+  .sidebar-logo .prof span { color: var(--amarelo); font-weight: 600; }
+  .sidebar-nav { flex: 1; padding: 16px 0; }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 20px; cursor: pointer;
+    color: rgba(255,255,255,0.65); font-size: 13.5px; font-weight: 500;
+    transition: all .2s; border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.06); color: white; }
+  .nav-item.active { background: rgba(82,183,136,0.18); color: var(--verde-claro); border-left-color: var(--verde-claro); }
+  .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+  .semester-badge {
+    background: rgba(249,199,79,0.15); border: 1px solid rgba(249,199,79,0.35);
+    color: var(--amarelo); font-size: 11px; font-weight: 600;
+    padding: 6px 12px; border-radius: 20px; text-align: center;
+  }
+
+  /* MAIN */
+  .main { margin-left: 240px; min-height: 100vh; }
+  .topbar {
+    background: white; border-bottom: 1px solid var(--cinza-borda);
+    padding: 18px 32px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  .topbar h1 { font-family: 'Lora', serif; font-size: 20px; color: var(--verde-escuro); }
+  .topbar-actions { display: flex; gap: 10px; }
+  .content { padding: 28px 32px; }
+
+  /* CARDS */
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+  .stat-card {
+    background: white; border-radius: var(--radius); padding: 18px 20px;
+    box-shadow: var(--shadow); border: 1px solid var(--cinza-borda);
+  }
+  .stat-card .label { font-size: 11px; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 1px; font-weight: 600; }
+  .stat-card .value { font-family: 'Lora', serif; font-size: 28px; color: var(--verde-escuro); margin-top: 4px; }
+  .stat-card .sub { font-size: 11px; color: var(--texto-suave); margin-top: 2px; }
+
+  /* BUTTONS */
+  .btn {
+    display: inline-flex; align-items: center; gap: 7px;
+    padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+    cursor: pointer; border: none; transition: all .2s; font-family: 'DM Sans', sans-serif;
+  }
+  .btn-primary { background: var(--verde); color: white; }
+  .btn-primary:hover { background: var(--verde-escuro); transform: translateY(-1px); box-shadow: 0 4px 12px rgba(45,106,79,0.3); }
+  .btn-outline { background: white; color: var(--verde); border: 1.5px solid var(--cinza-borda); }
+  .btn-outline:hover { border-color: var(--verde-claro); background: var(--verde-menta); }
+  .btn-laranja { background: var(--laranja); color: white; }
+  .btn-laranja:hover { background: #e0633a; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-danger { background: #fff0f0; color: var(--nao-adquirido); border: 1px solid #ffc0c0; }
+  .btn-danger:hover { background: #ffe0e0; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; background: var(--cinza-borda); padding: 4px; border-radius: 10px; width: fit-content; margin-bottom: 24px; }
+  .tab { padding: 8px 18px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 500; color: var(--texto-suave); transition: all .2s; }
+  .tab.active { background: white; color: var(--verde-escuro); box-shadow: 0 2px 8px rgba(0,0,0,0.08); font-weight: 600; }
+
+  /* TABLES */
+  .card { background: white; border-radius: var(--radius); box-shadow: var(--shadow); border: 1px solid var(--cinza-borda); overflow: hidden; }
+  .card-header { padding: 18px 24px; border-bottom: 1px solid var(--cinza-borda); display: flex; align-items: center; justify-content: space-between; }
+  .card-header h3 { font-family: 'Lora', serif; font-size: 16px; color: var(--verde-escuro); }
+  .card-body { padding: 0; }
+
+  table { width: 100%; border-collapse: collapse; }
+  th { background: var(--cinza-bg); font-size: 11px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.8px; padding: 12px 16px; text-align: left; }
+  td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--cinza-borda); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: var(--verde-menta); }
+
+  /* BADGES */
+  .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600; }
+  .badge-turma { background: #e8f4fd; color: #1a6fa3; }
+  .badge-especial { background: #fef3e2; color: #a05c00; }
+  .badge-sat { background: #d8f3dc; color: var(--verde-escuro); }
+  .badge-dev { background: #fef3e2; color: #a05c00; }
+  .badge-nao { background: #ffe0e0; color: var(--nao-adquirido); }
+
+  /* MODAL */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.45);
+    display: none; align-items: center; justify-content: center;
+    z-index: 1000; backdrop-filter: blur(3px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: white; border-radius: 18px; width: 90%; max-width: 780px;
+    max-height: 90vh; overflow-y: auto; box-shadow: 0 24px 60px rgba(0,0,0,0.2);
+    animation: slideUp .25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(30px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+  .modal-header {
+    padding: 24px 28px 20px; border-bottom: 1px solid var(--cinza-borda);
+    display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; background: white; z-index: 2; border-radius: 18px 18px 0 0;
+  }
+  .modal-header h2 { font-family: 'Lora', serif; font-size: 20px; color: var(--verde-escuro); }
+  .modal-close { background: none; border: none; font-size: 22px; cursor: pointer; color: var(--texto-suave); line-height: 1; }
+  .modal-body { padding: 24px 28px; }
+  .modal-footer { padding: 16px 28px; border-top: 1px solid var(--cinza-borda); display: flex; gap: 10px; justify-content: flex-end; }
+
+  /* FORM */
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-full { grid-column: 1 / -1; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group label { font-size: 12px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: 0.5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    padding: 10px 14px; border: 1.5px solid var(--cinza-borda); border-radius: 8px;
+    font-size: 14px; font-family: 'DM Sans', sans-serif; color: var(--texto);
+    transition: border-color .2s; background: var(--cinza-bg);
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+    outline: none; border-color: var(--verde-claro); background: white;
+  }
+  .form-group textarea { resize: vertical; min-height: 100px; }
+  .checkbox-row { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+  .checkbox-row input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--verde); cursor: pointer; }
+
+  /* AVALIAÇÃO */
+  .avaliacao-section { margin-bottom: 20px; }
+  .avaliacao-section h4 { font-size: 13px; font-weight: 700; color: var(--verde-escuro); margin-bottom: 10px; padding-bottom: 6px; border-bottom: 2px solid var(--verde-menta); }
+  .criterio-row {
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+    padding: 10px 0; border-bottom: 1px solid var(--cinza-borda);
+  }
+  .criterio-row:last-child { border-bottom: none; }
+  .criterio-texto { font-size: 13px; line-height: 1.5; flex: 1; color: var(--texto); }
+  .criterio-texto.destaque { font-style: italic; color: #5a4000; }
+  .radio-group { display: flex; gap: 6px; flex-shrink: 0; }
+  .radio-btn {
+    padding: 5px 10px; border-radius: 6px; border: 1.5px solid var(--cinza-borda);
+    font-size: 11px; font-weight: 600; cursor: pointer; transition: all .15s;
+    background: white; color: var(--texto-suave);
+  }
+  .radio-btn.s:hover, .radio-btn.s.sel { background: var(--verde-menta); border-color: var(--verde); color: var(--verde-escuro); }
+  .radio-btn.d:hover, .radio-btn.d.sel { background: #fef3e2; border-color: #e9891a; color: #a05c00; }
+  .radio-btn.n:hover, .radio-btn.n.sel { background: #ffe0e0; border-color: #c1121f; color: var(--nao-adquirido); }
+
+  /* RELATÓRIO GERADO */
+  .relatorio-box {
+    background: linear-gradient(135deg, var(--verde-menta) 0%, #fff 100%);
+    border: 2px solid var(--verde-claro); border-radius: 12px; padding: 20px;
+    font-size: 14px; line-height: 1.8; color: var(--texto);
+    font-family: 'Lora', serif;
+  }
+  .relatorio-loading { text-align: center; padding: 30px; color: var(--texto-suave); }
+  .relatorio-loading .spin { display: inline-block; animation: spin 1s linear infinite; font-size: 24px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* TURMAS GRID */
+  .turmas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+  .turma-card {
+    background: white; border-radius: 12px; padding: 20px;
+    border: 2px solid var(--cinza-borda); cursor: pointer;
+    transition: all .2s; box-shadow: var(--shadow);
+  }
+  .turma-card:hover { border-color: var(--verde-claro); transform: translateY(-2px); }
+  .turma-card.selected { border-color: var(--verde); background: var(--verde-menta); }
+  .turma-card .turma-nome { font-family: 'Lora', serif; font-size: 15px; color: var(--verde-escuro); font-weight: 700; }
+  .turma-card .turma-info { font-size: 12px; color: var(--texto-suave); margin-top: 4px; }
+  .turma-card .turma-count { font-size: 22px; font-weight: 700; color: var(--verde); margin-top: 10px; }
+
+  /* CSV UPLOAD */
+  .upload-area {
+    border: 2px dashed var(--cinza-borda); border-radius: 12px;
+    padding: 36px; text-align: center; cursor: pointer;
+    transition: all .2s; background: var(--cinza-bg);
+  }
+  .upload-area:hover { border-color: var(--verde-claro); background: var(--verde-menta); }
+  .upload-area .upload-icon { font-size: 36px; margin-bottom: 10px; }
+  .upload-area p { color: var(--texto-suave); font-size: 13px; }
+  .upload-area strong { color: var(--verde); }
+
+  /* EMPTY */
+  .empty-state { text-align: center; padding: 50px 20px; color: var(--texto-suave); }
+  .empty-state .icon { font-size: 44px; margin-bottom: 12px; }
+  .empty-state p { font-size: 14px; }
+
+  /* SEARCH */
+  .search-bar { position: relative; }
+  .search-bar input { padding-left: 36px; width: 260px; }
+  .search-bar .search-icon { position: absolute; left: 11px; top: 50%; transform: translateY(-50%); color: var(--texto-suave); font-size: 15px; }
+
+  /* PAGE SECTIONS */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* TOAST */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--verde-escuro); color: white;
+    padding: 12px 20px; border-radius: 10px; font-size: 13px; font-weight: 500;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 9999;
+    transform: translateY(80px); opacity: 0; transition: all .3s;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+
+  .divider { height: 1px; background: var(--cinza-borda); margin: 20px 0; }
+  .text-muted { color: var(--texto-suave); font-size: 12px; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .gap-2 { gap: 8px; }
+  .gap-3 { gap: 12px; }
+  .mt-2 { margin-top: 8px; }
+  .mt-3 { margin-top: 12px; }
+  .mb-4 { margin-bottom: 16px; }
+
+  .legend { display: flex; gap: 16px; font-size: 11px; font-weight: 600; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+
+
+  /* LOGIN */
+  #login-screen {
+    position: fixed; inset: 0; z-index: 9999;
+    background: linear-gradient(135deg, var(--verde-escuro) 0%, #0d2b1f 100%);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .login-box {
+    background: white; border-radius: 22px; padding: 48px 44px;
+    width: 100%; max-width: 400px; box-shadow: 0 32px 80px rgba(0,0,0,0.35);
+    text-align: center; animation: slideUp .35s ease;
+  }
+  .login-logo { font-size: 40px; margin-bottom: 12px; }
+  .login-escola { font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: var(--verde-claro); font-weight: 700; margin-bottom: 4px; }
+  .login-titulo { font-family: "Lora", serif; font-size: 22px; color: var(--verde-escuro); margin-bottom: 6px; }
+  .login-sub { font-size: 12px; color: var(--texto-suave); margin-bottom: 32px; }
+  .login-box .form-group { text-align: left; margin-bottom: 16px; }
+  .login-btn {
+    width: 100%; padding: 13px; background: var(--verde); color: white;
+    border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+    cursor: pointer; font-family: "DM Sans", sans-serif; transition: all .2s; margin-top: 8px;
+  }
+  .login-btn:hover { background: var(--verde-escuro); transform: translateY(-1px); }
+  .login-error { background: #ffe0e0; color: var(--nao-adquirido); border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-top: 14px; display: none; }
+  .login-footer { font-size: 11px; color: var(--texto-suave); margin-top: 24px; }
+
+  /* ACCORDION TURMAS */
+  .accordion-turma { border: 1.5px solid var(--cinza-borda); border-radius: 12px; margin-bottom: 12px; overflow: hidden; }
+  .accordion-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 16px 20px; background: white; cursor: pointer; transition: background .15s;
+  }
+  .accordion-header:hover { background: var(--verde-menta); }
+  .accordion-header .acc-left { display: flex; align-items: center; gap: 12px; }
+  .accordion-header .acc-nome { font-family: "Lora", serif; font-size: 15px; color: var(--verde-escuro); font-weight: 700; }
+  .accordion-header .acc-info { font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+  .accordion-header .acc-arrow { font-size: 13px; color: var(--texto-suave); transition: transform .2s; }
+  .accordion-header.open .acc-arrow { transform: rotate(180deg); }
+  .accordion-body { display: none; border-top: 1px solid var(--cinza-borda); }
+  .accordion-body.open { display: block; }
+  .acc-aluno-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px; border-bottom: 1px solid var(--cinza-borda); font-size: 13px;
+    background: white; transition: background .15s;
+  }
+  .acc-aluno-row:last-child { border-bottom: none; }
+  .acc-aluno-row:hover { background: var(--verde-menta); }
+  .acc-aluno-nome { font-weight: 500; color: var(--texto); display: flex; align-items: center; gap: 7px; }
+  .acc-actions { display: flex; gap: 5px; }
+  .acc-empty { padding: 18px 20px; font-size: 13px; color: var(--texto-suave); text-align: center; }
+  .acc-header-actions { display: flex; gap: 6px; align-items: center; }
+
+  /* SAIR BTN */
+  .btn-sair {
+    display: flex; align-items: center; gap: 8px;
+    padding: 9px 16px; border-radius: 8px; font-size: 12px; font-weight: 600;
+    cursor: pointer; border: 1px solid rgba(255,255,255,0.2);
+    color: rgba(255,255,255,0.7); background: transparent; transition: all .2s;
+    font-family: "DM Sans", sans-serif; width: 100%; margin-top: 10px;
+  }
+  .btn-sair:hover { background: rgba(255,255,255,0.1); color: white; }
+
+  @media print {
+    .sidebar, .topbar, .modal-overlay, .toast { display: none !important; }
+    .main { margin-left: 0; }
+    .relatorio-box { border: 1px solid #ccc; background: white; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TELA DE LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🌿</div>
+    <div class="login-escola">CEMEI Vila da Paz · Contagem/MG</div>
+    <h1 class="login-titulo">Relatórios Educação Infantil</h1>
+    <p class="login-sub">1º Semestre 2026 · Acesso restrito</p>
+    <div class="form-group">
+      <label>Usuário</label>
+      <input type="text" id="login-user" placeholder="Usuário" autocomplete="username">
+    </div>
+    <div class="form-group">
+      <label>Senha (CPF)</label>
+      <input type="password" id="login-pass" placeholder="Somente números" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="login-btn" onclick="doLogin()">Entrar</button>
+    <div class="login-error" id="login-error">Usuário ou senha incorretos.</div>
+    <div class="login-footer">Plataforma de uso exclusivo da Prof.ª Paula Ramoni da Silva</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="escola">CEMEI Vila da Paz · Contagem</div>
+    <h2>Relatórios Educação Infantil</h2>
+    <div class="prof">Prof.ª Auxiliar <span>Paula Ramoni da Silva</span></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</div>
+    <div class="nav-item" onclick="goTo('turmas')"><span class="icon">🏫</span> Turmas</div>
+    <div class="nav-item" onclick="goTo('alunos')"><span class="icon">👧</span> Alunos</div>
+    <div class="nav-item" onclick="goTo('relatorios')"><span class="icon">📄</span> Relatórios</div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="semester-badge">1º Semestre 2026</div>
+    <button class="btn-sair" onclick="fazerLogout()">🚪 Sair</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="topbar">
+    <h1 id="page-title">Início</h1>
+    <div class="topbar-actions" id="topbar-actions"></div>
+  </div>
+  <div class="content">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="label">Turmas</div>
+          <div class="value" id="stat-turmas">0</div>
+          <div class="sub">cadastradas</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Alunos</div>
+          <div class="value" id="stat-alunos">0</div>
+          <div class="sub">no total</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Ed. Especial</div>
+          <div class="value" id="stat-especial">0</div>
+          <div class="sub">alunos</div>
+        </div>
+        <div class="stat-card">
+          <div class="label">Relatórios</div>
+          <div class="value" id="stat-relatorios">0</div>
+          <div class="sub">gerados</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <h3>Suas Turmas</h3>
+          <button class="btn btn-primary" onclick="goTo('turmas')">+ Nova Turma</button>
+        </div>
+        <div class="card-body" id="dashboard-turmas">
+          <div class="empty-state"><div class="icon">🏫</div><p>Nenhuma turma cadastrada ainda.</p></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TURMAS -->
+    <div class="page" id="page-turmas">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+        <div></div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline" onclick="goTo('importar')">📥 Importar CSV</button>
+          <button class="btn btn-primary" onclick="openModalTurma()">+ Nova Turma</button>
+        </div>
+      </div>
+      <div id="accordion-turmas">
+        <div class="empty-state"><div class="icon">🏫</div><p>Nenhuma turma cadastrada.</p></div>
+      </div>
+    </div>
+
+    <!-- ALUNOS -->
+    <div class="page" id="page-alunos">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
+        <select id="filtro-turma" class="form-group" style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;min-width:180px;" onchange="renderAlunos()">
+          <option value="">Todas as turmas</option>
+        </select>
+        <div class="search-bar">
+          <span class="search-icon">🔍</span>
+          <input type="text" id="busca-aluno" placeholder="Buscar aluno…" style="padding:9px 14px 9px 36px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;width:220px;" oninput="renderAlunos()">
+        </div>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-outline" onclick="goTo('importar')">📥 Importar CSV</button>
+          <button class="btn btn-primary" onclick="openModalAluno()">+ Novo Aluno</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Nome</th><th>Turma</th><th>Ed. Especial</th><th>Diagnóstico</th><th>Relatório</th><th>Ações</th></tr></thead>
+            <tbody id="tabela-alunos"><tr><td colspan="6"><div class="empty-state"><div class="icon">👧</div><p>Nenhum aluno cadastrado.</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- RELATÓRIOS -->
+    <div class="page" id="page-relatorios">
+      <div class="card">
+        <div class="card-header">
+          <h3>Relatórios Gerados</h3>
+          <div style="display:flex;gap:8px;">
+            <select id="filtro-rel-turma" style="padding:8px 12px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;" onchange="renderRelatorios()">
+              <option value="">Todas as turmas</option>
+            </select>
+          </div>
+        </div>
+        <div class="card-body">
+          <table>
+            <thead><tr><th>Aluno</th><th>Turma</th><th>Data</th><th>Status</th><th>Ações</th></tr></thead>
+            <tbody id="tabela-relatorios"><tr><td colspan="5"><div class="empty-state"><div class="icon">📄</div><p>Nenhum relatório ainda.</p></div></td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- IMPORTAR -->
+    <div class="page" id="page-importar">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+        <div class="card">
+          <div class="card-header"><h3>📥 Importar Alunos via CSV</h3></div>
+          <div class="card-body" style="padding:24px;">
+            <p style="font-size:13px;color:var(--texto-suave);margin-bottom:16px;">
+              O arquivo CSV deve conter as colunas: <strong>nome, turma, educacao_especial, diagnostico</strong>
+            </p>
+            <div style="background:var(--cinza-bg);border-radius:8px;padding:12px;font-family:monospace;font-size:12px;margin-bottom:16px;color:var(--texto-suave);">
+              nome,turma,educacao_especial,diagnostico<br>
+              Ana Silva,Turma A,não,<br>
+              João Santos,Turma B,sim,TEA
+            </div>
+            <div class="upload-area" onclick="document.getElementById('csv-input').click()">
+              <input type="file" id="csv-input" accept=".csv" style="display:none" onchange="importCSV(this)">
+              <div class="upload-icon">📂</div>
+              <p><strong>Clique para selecionar</strong> ou arraste o arquivo CSV</p>
+              <p style="margin-top:6px;font-size:11px;">Apenas arquivos .csv</p>
+            </div>
+            <div id="import-result" style="margin-top:16px;"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h3>📋 Modelo CSV</h3></div>
+          <div class="card-body" style="padding:24px;">
+            <p style="font-size:13px;color:var(--texto-suave);margin-bottom:16px;">Baixe o modelo pronto para preencher:</p>
+            <button class="btn btn-outline" onclick="downloadCSVModel()" style="width:100%;justify-content:center;margin-bottom:20px;">⬇ Baixar modelo .csv</button>
+            <div class="divider"></div>
+            <p style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Legenda dos campos</p>
+            <table style="font-size:12px;">
+              <tr><td style="padding:6px 8px;font-weight:700;">nome</td><td style="padding:6px 8px;color:var(--texto-suave);">Nome completo do aluno</td></tr>
+              <tr><td style="padding:6px 8px;font-weight:700;">turma</td><td style="padding:6px 8px;color:var(--texto-suave);">Nome exato da turma</td></tr>
+              <tr><td style="padding:6px 8px;font-weight:700;">educacao_especial</td><td style="padding:6px 8px;color:var(--texto-suave);">sim / não</td></tr>
+              <tr><td style="padding:6px 8px;font-weight:700;">diagnostico</td><td style="padding:6px 8px;color:var(--texto-suave);">Ex: TEA, TDAH (deixe vazio se não)</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- MODAL TURMA -->
+<div class="modal-overlay" id="modal-turma">
+  <div class="modal" style="max-width:500px;">
+    <div class="modal-header">
+      <h2>🏫 Nova Turma</h2>
+      <button class="modal-close" onclick="closeModal('modal-turma')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label>Nome da Turma *</label>
+          <input type="text" id="turma-nome" placeholder="Ex: Turma A – Maternal II">
+        </div>
+        <div class="form-group">
+          <label>Faixa Etária</label>
+          <select id="turma-faixa">
+            <option value="2 anos">2 anos</option>
+            <option value="3 anos" selected>3 anos</option>
+            <option value="4 anos">4 anos</option>
+            <option value="5 anos">5 anos</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Turno</label>
+          <select id="turma-turno">
+            <option>Manhã</option>
+            <option>Tarde</option>
+            <option>Integral</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-turma')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarTurma()">Salvar Turma</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL ALUNO -->
+<div class="modal-overlay" id="modal-aluno">
+  <div class="modal" style="max-width:520px;">
+    <div class="modal-header">
+      <h2>👧 Cadastrar Aluno</h2>
+      <button class="modal-close" onclick="closeModal('modal-aluno')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group form-full">
+          <label>Nome Completo *</label>
+          <input type="text" id="aluno-nome" placeholder="Nome do aluno">
+        </div>
+        <div class="form-group form-full">
+          <label>Turma *</label>
+          <select id="aluno-turma"></select>
+        </div>
+        <div class="form-group form-full">
+          <label class="checkbox-row">
+            <input type="checkbox" id="aluno-especial" onchange="toggleDiag()">
+            Aluno da Educação Especial
+          </label>
+        </div>
+        <div class="form-group form-full" id="diag-group" style="display:none;">
+          <label>Diagnóstico</label>
+          <input type="text" id="aluno-diagnostico" placeholder="Ex: TEA, TDAH, Síndrome de Down…">
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-aluno')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarAluno()">Salvar Aluno</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AVALIAÇÃO / RELATÓRIO -->
+<div class="modal-overlay" id="modal-avaliacao">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="aval-titulo">Avaliação</h2>
+        <div id="aval-subtitulo" style="font-size:12px;color:var(--texto-suave);margin-top:3px;"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-avaliacao')">×</button>
+    </div>
+    <div class="modal-body">
+      <!-- TABS -->
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('avaliacao')">📋 Avaliação</div>
+        <div class="tab" onclick="switchTab('relatorio')">📝 Relatório</div>
+      </div>
+
+      <!-- TAB AVALIAÇÃO -->
+      <div id="tab-avaliacao">
+        <div class="legend mb-4">
+          <div class="legend-item"><div class="legend-dot" style="background:var(--satisfatorio)"></div> S = Satisfatório (70–100%)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--desenvolvimento)"></div> D = Em desenvolvimento (50–70%)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--nao-adquirido)"></div> N = Não adquirido (&lt;50%)</div>
+        </div>
+
+        <div class="avaliacao-section">
+          <h4>🧠 Aspectos Cognitivos</h4>
+          <div id="criterios-cognitivos"></div>
+        </div>
+        <div class="avaliacao-section">
+          <h4>🏃 Desenvolvimento Motor (Grosso)</h4>
+          <div id="criterios-motor-grosso"></div>
+        </div>
+        <div class="avaliacao-section">
+          <h4>✏️ Desenvolvimento Motor (Fino)</h4>
+          <div id="criterios-motor-fino"></div>
+        </div>
+        <div class="avaliacao-section">
+          <h4>🧍 Esquema Corporal e Figura Humana</h4>
+          <div id="criterios-esquema"></div>
+        </div>
+        <div class="avaliacao-section">
+          <h4>🎨 Representação da Figura Humana</h4>
+          <div class="criterio-row">
+            <div class="criterio-texto">Nível de representação da figura humana:</div>
+            <select id="figura-humana" style="padding:7px 12px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:12px;">
+              <option value="">Não observado</option>
+              <option value="nao_desenvolveu">Ainda não desenvolveu</option>
+              <option value="duas_partes">Com pelo menos duas partes</option>
+              <option value="tres_partes">Com três ou mais partes</option>
+              <option value="completa">Completa (todas as partes, inclusive olhos, boca, cabelo)</option>
+            </select>
+          </div>
+        </div>
+        <div class="avaliacao-section">
+          <h4>📝 Observações Adicionais</h4>
+          <div class="form-group">
+            <textarea id="obs-adicionais" placeholder="Informações complementares sobre o aluno que devem aparecer no relatório…" style="min-height:80px;"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB RELATÓRIO -->
+      <div id="tab-relatorio" style="display:none;">
+        <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap;">
+          <button class="btn btn-primary" onclick="gerarRelatorio()" id="btn-gerar">✨ Gerar com IA</button>
+          <button class="btn btn-outline" onclick="copiarTexto()">📋 Copiar texto</button>
+          <button class="btn btn-outline" onclick="imprimirRelatorio()">🖨️ Imprimir</button>
+        </div>
+        <div id="relatorio-output">
+          <div class="empty-state"><div class="icon">✨</div><p>Clique em "Gerar com IA" para criar o parágrafo do relatório baseado nas avaliações.</p></div>
+        </div>
+        <div id="rel-edit-area" style="display:none;margin-top:16px;">
+          <div class="form-group">
+            <label>Editar texto do relatório:</label>
+            <textarea id="rel-texto-editavel" style="min-height:180px;font-family:'Lora',serif;font-size:14px;line-height:1.8;"></textarea>
+          </div>
+          <div style="display:flex;gap:8px;margin-top:10px;">
+            <button class="btn btn-primary btn-sm" onclick="salvarTextoEditado()">💾 Salvar edição</button>
+            <button class="btn btn-outline btn-sm" onclick="cancelarEdicao()">Cancelar</button>
+          </div>
+        </div>
+        <div id="rel-actions" style="display:none;margin-top:12px;">
+          <button class="btn btn-outline btn-sm" onclick="editarRelatorio()">✏️ Editar</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-avaliacao')">Fechar</button>
+      <button class="btn btn-primary" onclick="salvarAvaliacao()">💾 Salvar Avaliação</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL VER RELATÓRIO -->
+<div class="modal-overlay" id="modal-ver-relatorio">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <h2 id="ver-rel-titulo">Relatório</h2>
+        <div id="ver-rel-sub" style="font-size:12px;color:var(--texto-suave);margin-top:3px;"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-ver-relatorio')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="relatorio-box" id="ver-rel-texto"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="copiarRelatorioVer()">📋 Copiar</button>
+      <button class="btn btn-outline" onclick="imprimirVer()">🖨️ Imprimir</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-ver-relatorio')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== STATE =====================
+let state = JSON.parse(localStorage.getItem('cemei_state') || 'null') || {
+  turmas: [], alunos: [], avaliacoes: {}, relatorios: {}
+};
+let currentAlunoId = null;
+let currentTab = 'avaliacao';
+
+function saveState() { localStorage.setItem('cemei_state', JSON.stringify(state)); }
+
+// ===================== CRITÉRIOS =====================
+const CRITERIOS = {
+  cognitivos: [
+    { id: 'c1', texto: 'Mostra que conhece pelo menos uma cor (ex: aponta para giz de cera vermelho quando perguntado "qual é o vermelho?")' },
+    { id: 'c2', texto: 'Conta oralmente em situações cotidianas e brincadeiras' },
+    { id: 'c3', texto: 'Usa os números em situações contextualizadas significativas' },
+    { id: 'c4', texto: 'Participa de jogos e brincadeiras (quebra-cabeça, boliche, esconde-esconde, amarelinha, trilha) que favorecem a construção do conceito de número', destaque: false },
+  ],
+  motorGrosso: [
+    { id: 'm1', texto: 'Fica na ponta dos pés', destaque: true },
+    { id: 'm2', texto: 'Salta do chão com os dois pés', destaque: true },
+    { id: 'm3', texto: 'Pula, corre e dança com equilíbrio', destaque: true },
+    { id: 'm4', texto: 'Brinca em circuitos e jogos respeitando as regras da brincadeira', destaque: true },
+  ],
+  motorFino: [
+    { id: 'mf1', texto: 'Empilha e encaixa blocos fazendo torres e outras representações', destaque: true },
+    { id: 'mf2', texto: 'Manuseia diferentes materiais com coordenação (pincéis, giz de cera, tesoura sem ponta)' },
+    { id: 'mf3', texto: 'Realiza atividades de encaixe, dobramento e colagem' },
+  ],
+  esquema: [
+    { id: 'e1', texto: 'Reconhece várias partes do corpo e tenta representá-las' },
+    { id: 'e2', texto: 'Nomeia as principais partes do corpo (cabeça, braços, pernas, mãos, pés)' },
+    { id: 'e3', texto: 'Demonstra consciência corporal nas atividades motoras e de dança' },
+  ]
+};
+
+function renderCriterios(containerId, lista, alunoAval) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = lista.map(item => `
+    <div class="criterio-row">
+      <div class="criterio-texto ${item.destaque ? 'destaque' : ''}">${item.texto}</div>
+      <div class="radio-group">
+        <button class="radio-btn s ${alunoAval && alunoAval[item.id] === 'S' ? 'sel' : ''}" onclick="setAval('${item.id}', 'S', this)">S</button>
+        <button class="radio-btn d ${alunoAval && alunoAval[item.id] === 'D' ? 'sel' : ''}" onclick="setAval('${item.id}', 'D', this)">D</button>
+        <button class="radio-btn n ${alunoAval && alunoAval[item.id] === 'N' ? 'sel' : ''}" onclick="setAval('${item.id}', 'N', this)">N</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function setAval(id, val, btn) {
+  const group = btn.closest('.radio-group');
+  group.querySelectorAll('.radio-btn').forEach(b => b.classList.remove('sel'));
+  btn.classList.add('sel');
+  if (!state.avaliacoes[currentAlunoId]) state.avaliacoes[currentAlunoId] = {};
+  state.avaliacoes[currentAlunoId][id] = val;
+}
+
+// ===================== NAVEGAÇÃO =====================
+const pageNames = { dashboard:'Início', turmas:'Turmas', alunos:'Alunos', relatorios:'Relatórios', importar:'Importar CSV' };
+
+function goTo(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item')[['dashboard','turmas','alunos','relatorios','importar'].indexOf(page)]?.classList.add('active');
+  document.getElementById('page-title').textContent = pageNames[page];
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'turmas') renderTurmas();
+  if (page === 'alunos') renderAlunos();
+  if (page === 'relatorios') renderRelatorios();
+  if (page === 'alunos' || page === 'relatorios') populateFiltroTurma();
+}
+
+// ===================== MODAIS =====================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tabs .tab').forEach((t, i) => t.classList.toggle('active', ['avaliacao','relatorio'][i] === tab));
+  document.getElementById('tab-avaliacao').style.display = tab === 'avaliacao' ? '' : 'none';
+  document.getElementById('tab-relatorio').style.display = tab === 'relatorio' ? '' : 'none';
+}
+
+// ===================== TURMAS =====================
+let editingTurmaId = null;
+function openModalTurma(id = null) {
+  editingTurmaId = id;
+  if (id) {
+    const t = state.turmas.find(t => t.id === id);
+    document.getElementById('turma-nome').value = t.nome;
+    document.getElementById('turma-faixa').value = t.faixa;
+    document.getElementById('turma-turno').value = t.turno;
+    document.querySelector('#modal-turma h2').textContent = '✏️ Editar Turma';
+  } else {
+    document.getElementById('turma-nome').value = '';
+    document.querySelector('#modal-turma h2').textContent = '🏫 Nova Turma';
+  }
+  openModal('modal-turma');
+}
+
+function salvarTurma() {
+  const nome = document.getElementById('turma-nome').value.trim();
+  if (!nome) { toast('Informe o nome da turma.'); return; }
+  if (editingTurmaId) {
+    const t = state.turmas.find(t => t.id === editingTurmaId);
+    t.nome = nome; t.faixa = document.getElementById('turma-faixa').value; t.turno = document.getElementById('turma-turno').value;
+  } else {
+    state.turmas.push({ id: Date.now().toString(), nome, faixa: document.getElementById('turma-faixa').value, turno: document.getElementById('turma-turno').value });
+  }
+  saveState(); closeModal('modal-turma'); renderTurmas(); toast('Turma salva! ✅');
+}
+
+function excluirTurma(id) {
+  if (!confirm('Excluir esta turma? Os alunos vinculados também serão removidos.')) return;
+  state.turmas = state.turmas.filter(t => t.id !== id);
+  state.alunos = state.alunos.filter(a => a.turmaId !== id);
+  saveState(); renderTurmas(); toast('Turma removida.');
+}
+
+function renderTurmas() {
+  const container = document.getElementById('accordion-turmas');
+  if (!state.turmas.length) {
+    container.innerHTML = '<div class="empty-state"><div class="icon">🏫</div><p>Nenhuma turma cadastrada.</p></div>';
+    return;
+  }
+  container.innerHTML = state.turmas.map(t => {
+    const alunos = state.alunos.filter(a => a.turmaId === t.id).sort((a,b) => a.nome.localeCompare(b.nome));
+    const count = alunos.length;
+    const rels = alunos.filter(a => state.relatorios[a.id]).length;
+    const alunosHTML = count === 0
+      ? '<div class="acc-empty">Nenhum aluno nesta turma.</div>'
+      : alunos.map(a => `
+        <div class="acc-aluno-row">
+          <div class="acc-aluno-nome">
+            ${a.nome}
+            ${a.especial ? '<span class="badge badge-especial" style="font-size:10px;">⭐ Ed. Esp.</span>' : ''}
+            ${state.relatorios[a.id] ? '<span class="badge badge-sat" style="font-size:10px;">✅</span>' : ''}
+          </div>
+          <div class="acc-actions">
+            <button class="btn btn-primary btn-sm" onclick="openAvaliacao('${a.id}')">📋 Avaliar</button>
+            <button class="btn btn-outline btn-sm" onclick="openModalAluno('${a.id}')">✏️</button>
+            <button class="btn btn-danger btn-sm" onclick="excluirAluno('${a.id}');renderTurmas()">🗑️</button>
+          </div>
+        </div>`).join('');
+    return `<div class="accordion-turma">
+      <div class="accordion-header" onclick="toggleAcc('acc-body-${t.id}', this)">
+        <div class="acc-left">
+          <div>
+            <div class="acc-nome">🏫 ${t.nome}</div>
+            <div class="acc-info">${t.turno} · ${t.faixa} · ${count} aluno${count!==1?'s':''} · ${rels} relatório${rels!==1?'s':''}</div>
+          </div>
+        </div>
+        <div class="acc-header-actions">
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openModalAluno();document.getElementById('aluno-turma').value='${t.id}'">+ Aluno</button>
+          <button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openModalTurma('${t.id}')">✏️</button>
+          <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();excluirTurma('${t.id}')">🗑️</button>
+          <span class="acc-arrow">▼</span>
+        </div>
+      </div>
+      <div class="accordion-body" id="acc-body-${t.id}">${alunosHTML}</div>
+    </div>`;
+  }).join('');
+}
+
+function toggleAcc(bodyId, header) {
+  const body = document.getElementById(bodyId);
+  body.classList.toggle('open');
+  header.classList.toggle('open');
+}
+
+// ===================== ALUNOS =====================
+let editingAlunoId = null;
+function openModalAluno(id = null) {
+  editingAlunoId = id;
+  populateSelectTurmas('aluno-turma');
+  if (id) {
+    const a = state.alunos.find(a => a.id === id);
+    document.getElementById('aluno-nome').value = a.nome;
+    document.getElementById('aluno-turma').value = a.turmaId;
+    document.getElementById('aluno-especial').checked = a.especial;
+    document.getElementById('aluno-diagnostico').value = a.diagnostico || '';
+    document.getElementById('diag-group').style.display = a.especial ? '' : 'none';
+    document.querySelector('#modal-aluno h2').textContent = '✏️ Editar Aluno';
+  } else {
+    document.getElementById('aluno-nome').value = '';
+    document.getElementById('aluno-especial').checked = false;
+    document.getElementById('aluno-diagnostico').value = '';
+    document.getElementById('diag-group').style.display = 'none';
+    document.querySelector('#modal-aluno h2').textContent = '👧 Cadastrar Aluno';
+  }
+  openModal('modal-aluno');
+}
+
+function toggleDiag() {
+  document.getElementById('diag-group').style.display = document.getElementById('aluno-especial').checked ? '' : 'none';
+}
+
+function salvarAluno() {
+  const nome = document.getElementById('aluno-nome').value.trim();
+  const turmaId = document.getElementById('aluno-turma').value;
+  if (!nome) { toast('Informe o nome do aluno.'); return; }
+  if (!turmaId) { toast('Selecione uma turma.'); return; }
+  const obj = { nome, turmaId, especial: document.getElementById('aluno-especial').checked, diagnostico: document.getElementById('aluno-diagnostico').value.trim() };
+  if (editingAlunoId) {
+    const a = state.alunos.find(a => a.id === editingAlunoId);
+    Object.assign(a, obj);
+  } else {
+    state.alunos.push({ id: Date.now().toString(), ...obj });
+  }
+  saveState(); closeModal('modal-aluno'); renderAlunos(); toast('Aluno salvo! ✅');
+}
+
+function excluirAluno(id) {
+  if (!confirm('Excluir este aluno?')) return;
+  state.alunos = state.alunos.filter(a => a.id !== id);
+  delete state.avaliacoes[id]; delete state.relatorios[id];
+  saveState(); renderAlunos(); toast('Aluno removido.');
+}
+
+function renderAlunos() {
+  const filtro = document.getElementById('filtro-turma').value;
+  const busca = (document.getElementById('busca-aluno').value || '').toLowerCase();
+  const tbody = document.getElementById('tabela-alunos');
+  let lista = state.alunos.filter(a => (!filtro || a.turmaId === filtro) && (!busca || a.nome.toLowerCase().includes(busca)));
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="6"><div class="empty-state"><div class="icon">👧</div><p>Nenhum aluno encontrado.</p></div></td></tr>'; return; }
+  lista.sort((a, b) => a.nome.localeCompare(b.nome));
+  tbody.innerHTML = lista.map(a => {
+    const turma = state.turmas.find(t => t.id === a.turmaId);
+    const temRel = !!state.relatorios[a.id];
+    return `<tr>
+      <td><strong>${a.nome}</strong></td>
+      <td><span class="badge badge-turma">${turma ? turma.nome : '—'}</span></td>
+      <td>${a.especial ? '<span class="badge badge-especial">⭐ Especial</span>' : '<span style="color:var(--texto-suave);font-size:12px;">—</span>'}</td>
+      <td style="font-size:12px;color:var(--texto-suave);">${a.diagnostico || '—'}</td>
+      <td>${temRel ? '<span class="badge badge-sat">✅ Gerado</span>' : '<span class="badge" style="background:#f0f0f0;color:#888;">Pendente</span>'}</td>
+      <td style="display:flex;gap:5px;">
+        <button class="btn btn-primary btn-sm" onclick="openAvaliacao('${a.id}')">📋 Avaliar</button>
+        <button class="btn btn-outline btn-sm" onclick="openModalAluno('${a.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="excluirAluno('${a.id}')">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function populateSelectTurmas(selectId) {
+  const sel = document.getElementById(selectId);
+  sel.innerHTML = '<option value="">Selecione a turma</option>' + state.turmas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
+}
+
+function populateFiltroTurma() {
+  ['filtro-turma', 'filtro-rel-turma'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = '<option value="">Todas as turmas</option>' + state.turmas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
+  });
+}
+
+// ===================== AVALIAÇÃO =====================
+function openAvaliacao(alunoId) {
+  currentAlunoId = alunoId;
+  const aluno = state.alunos.find(a => a.id === alunoId);
+  const turma = state.turmas.find(t => t.id === aluno.turmaId);
+  const aval = state.avaliacoes[alunoId] || {};
+  document.getElementById('aval-titulo').textContent = aluno.nome;
+  document.getElementById('aval-subtitulo').textContent = (turma ? turma.nome : '') + (aluno.especial ? ` · ⭐ Ed. Especial${aluno.diagnostico ? ' – ' + aluno.diagnostico : ''}` : '');
+  renderCriterios('criterios-cognitivos', CRITERIOS.cognitivos, aval);
+  renderCriterios('criterios-motor-grosso', CRITERIOS.motorGrosso, aval);
+  renderCriterios('criterios-motor-fino', CRITERIOS.motorFino, aval);
+  renderCriterios('criterios-esquema', CRITERIOS.esquema, aval);
+  document.getElementById('figura-humana').value = aval.figuraHumana || '';
+  document.getElementById('obs-adicionais').value = aval.obs || '';
+  // Reset relatório tab
+  const rel = state.relatorios[alunoId];
+  document.getElementById('relatorio-output').innerHTML = rel
+    ? `<div class="relatorio-box">${rel}</div>`
+    : '<div class="empty-state"><div class="icon">✨</div><p>Clique em "Gerar com IA" para criar o parágrafo do relatório.</p></div>';
+  document.getElementById('rel-edit-area').style.display = 'none';
+  document.getElementById('rel-actions').style.display = rel ? '' : 'none';
+  switchTab('avaliacao');
+  openModal('modal-avaliacao');
+}
+
+function salvarAvaliacao() {
+  if (!state.avaliacoes[currentAlunoId]) state.avaliacoes[currentAlunoId] = {};
+  state.avaliacoes[currentAlunoId].figuraHumana = document.getElementById('figura-humana').value;
+  state.avaliacoes[currentAlunoId].obs = document.getElementById('obs-adicionais').value;
+  saveState(); toast('Avaliação salva! ✅'); closeModal('modal-avaliacao'); renderAlunos();
+}
+
+// ===================== IA – GERAR RELATÓRIO =====================
+async function gerarRelatorio() {
+  const aluno = state.alunos.find(a => a.id === currentAlunoId);
+  const aval = state.avaliacoes[currentAlunoId] || {};
+  const turma = state.turmas.find(t => t.id === aluno.turmaId);
+  const figuraMap = { nao_desenvolveu: 'ainda não desenvolveu esta habilidade', duas_partes: 'representa a figura humana com pelo menos duas partes', tres_partes: 'representa a figura humana com três ou mais partes', completa: 'apresenta representação completa da figura humana (com olhos, boca, cabelo e todas as partes do corpo)' };
+
+  function descCriterio(lista, avalObj) {
+    return lista.map(c => `- ${c.texto}: ${avalObj[c.id] === 'S' ? 'Satisfatório' : avalObj[c.id] === 'D' ? 'Em desenvolvimento' : avalObj[c.id] === 'N' ? 'Não adquirido' : 'Não avaliado'}`).join('\n');
+  }
+
+  const prompt = `Você é uma professora auxiliar da educação infantil brasileira chamada Paula Ramoni da Silva, da CEMEI Vila da Paz, em Contagem/MG. Escreva um ÚNICO parágrafo de relatório escolar sobre o aluno, seguindo EXATAMENTE a estrutura e orientações abaixo.
+
+INSTRUÇÕES:
+- O parágrafo deve abordar: Desenvolvimento Motor (fino e grosso), Cognitivo e Esquema Corporal, além da representação da figura humana.
+- Use linguagem acolhedora, profissional e adequada para relatório de educação infantil.
+- Relate como a criança processa informações, resolve pequenos desafios e manuseia diferentes objetos.
+- Se a representação da figura humana foi observada, descreva o nível dela.
+- Use o nome do aluno de forma natural ao longo do texto.
+- NÃO use marcadores, subtítulos ou listas. Apenas um parágrafo corrido.
+- Se o aluno tem diagnóstico de educação especial, mencione com sensibilidade e foco nas potencialidades.
+${aluno.especial && aluno.diagnostico ? `- O aluno tem diagnóstico de: ${aluno.diagnostico}` : ''}
+
+NOME DO ALUNO: ${aluno.nome}
+TURMA: ${turma ? turma.nome : ''}
+
+DADOS DE AVALIAÇÃO:
+
+COGNITIVO:
+${descCriterio(CRITERIOS.cognitivos, aval)}
+
+MOTOR GROSSO:
+${descCriterio(CRITERIOS.motorGrosso, aval)}
+
+MOTOR FINO:
+${descCriterio(CRITERIOS.motorFino, aval)}
+
+ESQUEMA CORPORAL:
+${descCriterio(CRITERIOS.esquema, aval)}
+
+FIGURA HUMANA: ${aval.figuraHumana ? figuraMap[aval.figuraHumana] || aval.figuraHumana : 'Não observado'}
+
+${aval.obs ? 'OBSERVAÇÕES ADICIONAIS: ' + aval.obs : ''}
+
+Escreva apenas o parágrafo do relatório, sem título, sem introdução.`;
+
+  const outDiv = document.getElementById('relatorio-output');
+  outDiv.innerHTML = '<div class="relatorio-loading"><span class="spin">⏳</span><br><br>A IA está gerando o relatório…</div>';
+  document.getElementById('btn-gerar').disabled = true;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': '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', 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await res.json();
+    const texto = data.content?.[0]?.text || '';
+    if (!texto) throw new Error('Resposta vazia');
+    state.relatorios[currentAlunoId] = texto;
+    saveState();
+    outDiv.innerHTML = `<div class="relatorio-box">${texto}</div>`;
+    document.getElementById('rel-actions').style.display = '';
+    toast('Relatório gerado com sucesso! ✅');
+  } catch (e) {
+    outDiv.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao gerar relatório. Verifique sua conexão.</p></div>';
+  }
+  document.getElementById('btn-gerar').disabled = false;
+}
+
+function editarRelatorio() {
+  const texto = state.relatorios[currentAlunoId] || '';
+  document.getElementById('rel-texto-editavel').value = texto;
+  document.getElementById('rel-edit-area').style.display = '';
+  document.getElementById('rel-actions').style.display = 'none';
+  document.getElementById('relatorio-output').style.display = 'none';
+}
+function salvarTextoEditado() {
+  const novo = document.getElementById('rel-texto-editavel').value;
+  state.relatorios[currentAlunoId] = novo;
+  saveState();
+  document.getElementById('relatorio-output').innerHTML = `<div class="relatorio-box">${novo}</div>`;
+  document.getElementById('relatorio-output').style.display = '';
+  document.getElementById('rel-edit-area').style.display = 'none';
+  document.getElementById('rel-actions').style.display = '';
+  toast('Texto salvo! ✅');
+}
+function cancelarEdicao() {
+  document.getElementById('rel-edit-area').style.display = 'none';
+  document.getElementById('relatorio-output').style.display = '';
+  document.getElementById('rel-actions').style.display = '';
+}
+
+function copiarTexto() {
+  const texto = state.relatorios[currentAlunoId];
+  if (!texto) { toast('Gere o relatório primeiro.'); return; }
+  navigator.clipboard.writeText(texto).then(() => toast('Texto copiado! 📋'));
+}
+
+function imprimirRelatorio() {
+  const aluno = state.alunos.find(a => a.id === currentAlunoId);
+  const texto = state.relatorios[currentAlunoId];
+  if (!texto) { toast('Gere o relatório primeiro.'); return; }
+  const win = window.open('', '_blank');
+  win.document.write(`<html><head><title>Relatório - ${aluno.nome}</title>
+  <style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;font-size:14px;line-height:1.8;color:#1c2e26;}
+  h2{font-size:18px;color:#1b4332;border-bottom:2px solid #52b788;padding-bottom:8px;}
+  .meta{font-size:12px;color:#5a7a68;margin:8px 0 24px;}
+  p{margin:0;}</style></head><body>
+  <h2>Relatório Educação Infantil – CEMEI Vila da Paz</h2>
+  <p class="meta">Aluno: <strong>${aluno.nome}</strong> &nbsp;|&nbsp; 1º Semestre 2026 &nbsp;|&nbsp; Prof.ª Paula Ramoni da Silva</p>
+  <p>${texto}</p>
+  </body></html>`);
+  win.document.close(); win.print();
+}
+
+// ===================== VER RELATÓRIO =====================
+function verRelatorio(alunoId) {
+  const aluno = state.alunos.find(a => a.id === alunoId);
+  const turma = state.turmas.find(t => t.id === aluno.turmaId);
+  document.getElementById('ver-rel-titulo').textContent = aluno.nome;
+  document.getElementById('ver-rel-sub').textContent = turma ? turma.nome : '';
+  document.getElementById('ver-rel-texto').textContent = state.relatorios[alunoId] || '';
+  openModal('modal-ver-relatorio');
+}
+function copiarRelatorioVer() {
+  const txt = document.getElementById('ver-rel-texto').textContent;
+  navigator.clipboard.writeText(txt).then(() => toast('Copiado! 📋'));
+}
+function imprimirVer() {
+  const titulo = document.getElementById('ver-rel-titulo').textContent;
+  const texto = document.getElementById('ver-rel-texto').textContent;
+  const win = window.open('', '_blank');
+  win.document.write(`<html><head><title>Relatório</title><style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;font-size:14px;line-height:1.8;}h2{color:#1b4332;border-bottom:2px solid #52b788;padding-bottom:8px;}</style></head><body><h2>Relatório – ${titulo}</h2><p>${texto}</p></body></html>`);
+  win.document.close(); win.print();
+}
+
+// ===================== RELATÓRIOS PAGE =====================
+function renderRelatorios() {
+  const filtro = document.getElementById('filtro-rel-turma').value;
+  const tbody = document.getElementById('tabela-relatorios');
+  const lista = state.alunos.filter(a => (!filtro || a.turmaId === filtro) && state.relatorios[a.id]);
+  if (!lista.length) { tbody.innerHTML = '<tr><td colspan="5"><div class="empty-state"><div class="icon">📄</div><p>Nenhum relatório gerado ainda.</p></div></td></tr>'; return; }
+  lista.sort((a, b) => a.nome.localeCompare(b.nome));
+  tbody.innerHTML = lista.map(a => {
+    const turma = state.turmas.find(t => t.id === a.turmaId);
+    return `<tr>
+      <td><strong>${a.nome}</strong>${a.especial ? ' <span class="badge badge-especial" style="font-size:10px;">⭐</span>' : ''}</td>
+      <td><span class="badge badge-turma">${turma ? turma.nome : '—'}</span></td>
+      <td style="font-size:12px;color:var(--texto-suave);">—</td>
+      <td><span class="badge badge-sat">✅ Gerado</span></td>
+      <td style="display:flex;gap:6px;">
+        <button class="btn btn-outline btn-sm" onclick="verRelatorio('${a.id}')">👁️ Ver</button>
+        <button class="btn btn-primary btn-sm" onclick="openAvaliacao('${a.id}');setTimeout(()=>switchTab('relatorio'),100)">✏️ Editar</button>
+        <button class="btn btn-outline btn-sm" onclick="imprimirRelatorioById('${a.id}')">🖨️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function imprimirRelatorioById(id) {
+  const aluno = state.alunos.find(a => a.id === id);
+  const texto = state.relatorios[id];
+  const win = window.open('', '_blank');
+  win.document.write(`<html><head><title>Relatório - ${aluno.nome}</title><style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;font-size:14px;line-height:1.8;color:#1c2e26;}h2{font-size:18px;color:#1b4332;border-bottom:2px solid #52b788;padding-bottom:8px;}</style></head><body><h2>Relatório – CEMEI Vila da Paz</h2><p style="font-size:12px;color:#5a7a68;margin:8px 0 24px;">Aluno: <strong>${aluno.nome}</strong></p><p>${texto}</p></body></html>`);
+  win.document.close(); win.print();
+}
+
+// ===================== DASHBOARD =====================
+function renderDashboard() {
+  document.getElementById('stat-turmas').textContent = state.turmas.length;
+  document.getElementById('stat-alunos').textContent = state.alunos.length;
+  document.getElementById('stat-especial').textContent = state.alunos.filter(a => a.especial).length;
+  document.getElementById('stat-relatorios').textContent = Object.keys(state.relatorios).length;
+  const container = document.getElementById('dashboard-turmas');
+  if (!state.turmas.length) { container.innerHTML = '<div class="empty-state"><div class="icon">🏫</div><p>Cadastre turmas para começar.</p></div>'; return; }
+  container.style.padding = '20px';
+  container.innerHTML = `<div class="turmas-grid">${state.turmas.map(t => {
+    const count = state.alunos.filter(a => a.turmaId === t.id).length;
+    const rels = state.alunos.filter(a => a.turmaId === t.id && state.relatorios[a.id]).length;
+    return `<div class="turma-card" onclick="goTo('alunos');setTimeout(()=>{document.getElementById('filtro-turma').value='${t.id}';renderAlunos();},50)">
+      <div class="turma-nome">${t.nome}</div>
+      <div class="turma-info">${t.turno} · ${t.faixa}</div>
+      <div class="turma-count">${count}</div>
+      <div class="text-muted">${rels} relatório${rels !== 1 ? 's' : ''} gerado${rels !== 1 ? 's' : ''}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ===================== CSV =====================
+function importCSV(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const lines = e.target.result.split('\n').filter(l => l.trim());
+    if (!lines.length) return;
+    const headers = lines[0].split(',').map(h => h.trim().toLowerCase().replace(/[^a-z_]/g, ''));
+    let added = 0, turmasNew = 0;
+    lines.slice(1).forEach(line => {
+      const cols = line.split(',').map(c => c.trim().replace(/^"|"$/g, ''));
+      const row = {};
+      headers.forEach((h, i) => row[h] = cols[i] || '');
+      if (!row.nome) return;
+      // Criar turma se não existe
+      let turma = state.turmas.find(t => t.nome.toLowerCase() === (row.turma || '').toLowerCase());
+      if (!turma && row.turma) {
+        turma = { id: Date.now().toString() + Math.random(), nome: row.turma, faixa: '3 anos', turno: 'Manhã' };
+        state.turmas.push(turma); turmasNew++;
+      }
+      const ja = state.alunos.find(a => a.nome.toLowerCase() === row.nome.toLowerCase() && a.turmaId === turma?.id);
+      if (!ja) {
+        state.alunos.push({ id: Date.now().toString() + Math.random(), nome: row.nome, turmaId: turma?.id || '', especial: (row.educacao_especial || '').toLowerCase() === 'sim', diagnostico: row.diagnostico || '' });
+        added++;
+      }
+    });
+    saveState();
+    document.getElementById('import-result').innerHTML = `<div style="background:var(--verde-menta);border:1.5px solid var(--verde-claro);border-radius:10px;padding:16px;font-size:13px;color:var(--verde-escuro);">
+      ✅ Importação concluída!<br><strong>${added}</strong> aluno(s) adicionado(s) · <strong>${turmasNew}</strong> turma(s) criada(s) automaticamente.
+    </div>`;
+    toast('CSV importado com sucesso! ✅');
+    renderDashboard();
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
+function downloadCSVModel() {
+  const csv = 'nome,turma,educacao_especial,diagnostico\nAna Silva,Turma A - Maternal II,não,\nJoão Santos,Turma B - Jardim I,sim,TEA\nMaria Oliveira,Turma A - Maternal II,não,';
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'modelo_alunos.csv'; a.click();
+}
+
+// ===================== TOAST =====================
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ===================== LOGIN =====================
+const LOGIN_USER = 'paula';
+const LOGIN_PASS = '08168338693';
+
+function doLogin() {
+  const u = document.getElementById('login-user').value.trim().toLowerCase();
+  const p = document.getElementById('login-pass').value.trim().replace(/[^0-9]/g,'');
+  const err = document.getElementById('login-error');
+  if (u === LOGIN_USER && p === LOGIN_PASS) {
+    document.getElementById('login-screen').style.display = 'none';
+    sessionStorage.setItem('cemei_logado', '1');
+    err.style.display = 'none';
+  } else {
+    err.style.display = 'block';
+    document.getElementById('login-pass').value = '';
+  }
+}
+
+function fazerLogout() {
+  sessionStorage.removeItem('cemei_logado');
+  location.reload();
+}
+
+// Verificar se já está logado
+if (sessionStorage.getItem('cemei_logado') === '1') {
+  document.getElementById('login-screen').style.display = 'none';
+}
+
+// ===================== INIT =====================
+renderDashboard();
+</script>
+</body>
+</html>
