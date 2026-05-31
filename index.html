@@ -581,12 +581,10 @@
       <div class="card">
         <div class="card-header">
           <h3>Relatórios Gerados</h3>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+          <div style="display:flex;gap:8px;">
             <select id="filtro-rel-turma" style="padding:8px 12px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;" onchange="renderRelatorios()">
               <option value="">Todas as turmas</option>
             </select>
-            <button class="btn btn-primary btn-sm" onclick="gerarLote(document.getElementById('filtro-rel-turma').value)">✨ Gerar em lote</button>
-            <button class="btn btn-outline btn-sm" onclick="imprimirLote(document.getElementById('filtro-rel-turma').value)">🖨️ Imprimir turma (PDF)</button>
           </div>
         </div>
         <div class="card-body">
@@ -1188,30 +1186,32 @@ async function salvarAvaliacao() {
 }
 
 // ===================== IA – GERAR RELATÓRIO =====================
-function buildPrompt(aluno, aval, turma) {
+async function gerarRelatorio() {
+  const aluno = state.alunos.find(a => a.id === currentAlunoId);
+  const aval = state.avaliacoes[currentAlunoId] || {};
+  const turma = state.turmas.find(t => t.id === aluno.turmaId);
   const figuraMap = { nao_desenvolveu: 'ainda não desenvolveu esta habilidade', duas_partes: 'representa a figura humana com pelo menos duas partes', tres_partes: 'representa a figura humana com três ou mais partes', completa: 'apresenta representação completa da figura humana (com olhos, boca, cabelo e todas as partes do corpo)' };
+
   function descCriterio(lista, avalObj) {
     return lista.map(c => `- ${c.texto}: ${avalObj[c.id] === 'S' ? 'Satisfatório' : avalObj[c.id] === 'D' ? 'Em desenvolvimento' : avalObj[c.id] === 'N' ? 'Não adquirido' : 'Não avaliado'}`).join('\n');
   }
-  return `Você é a professora auxiliar Paula Ramoni da Silva, da CEMEI Vila da Paz, Contagem/MG. Seu texto será inserido como parte de um relatório maior redigido pela professora regente.
 
-INSTRUÇÕES OBRIGATÓRIAS:
-- Escreva um texto compacto de no máximo 10 linhas (formato A4, margens 1,5cm).
-- Use linguagem formal, clara e acessível para a família, sem jargões pedagógicos excessivos.
-- Baseie-se EXCLUSIVAMENTE nos dados de avaliação abaixo. Não invente nem suponha informações não registradas.
-- Estruture em parágrafo corrido (sem subtítulos ou listas), abordando na sequência:
-  1. Estágio atual de desenvolvimento da criança (motor fino, motor grosso, cognitivo e esquema corporal).
-  2. Pontos ainda em desenvolvimento que serão trabalhados na CEMEI, de forma construtiva e respeitosa.
-  3. Breve orientação prática para a família contribuir em casa.
-- Use o nome da criança naturalmente ao longo do texto.
-- NÃO inclua título, saudação, assinatura ou introdução. Comece direto pelo relato.
-- Se a criança tem diagnóstico de educação especial, mencione com sensibilidade, focando nas potencialidades.
-${aluno.especial && aluno.diagnostico ? `- Diagnóstico da criança: ${aluno.diagnostico}` : ''}
+  const prompt = `Você é uma professora auxiliar da educação infantil brasileira chamada Paula Ramoni da Silva, da CEMEI Vila da Paz, em Contagem/MG. Escreva um ÚNICO parágrafo de relatório escolar sobre o aluno, seguindo EXATAMENTE a estrutura e orientações abaixo.
 
-NOME DA CRIANÇA: ${aluno.nome}
+INSTRUÇÕES:
+- O parágrafo deve abordar: Desenvolvimento Motor (fino e grosso), Cognitivo e Esquema Corporal, além da representação da figura humana.
+- Use linguagem acolhedora, profissional e adequada para relatório de educação infantil.
+- Relate como a criança processa informações, resolve pequenos desafios e manuseia diferentes objetos.
+- Se a representação da figura humana foi observada, descreva o nível dela.
+- Use o nome do aluno de forma natural ao longo do texto.
+- NÃO use marcadores, subtítulos ou listas. Apenas um parágrafo corrido.
+- Se o aluno tem diagnóstico de educação especial, mencione com sensibilidade e foco nas potencialidades.
+${aluno.especial && aluno.diagnostico ? `- O aluno tem diagnóstico de: ${aluno.diagnostico}` : ''}
+
+NOME DO ALUNO: ${aluno.nome}
 TURMA: ${turma ? turma.nome : ''}
 
-AVALIAÇÕES REGISTRADAS:
+DADOS DE AVALIAÇÃO:
 
 COGNITIVO:
 ${descCriterio(CRITERIOS.cognitivos, aval)}
@@ -1227,25 +1227,9 @@ ${descCriterio(CRITERIOS.esquema, aval)}
 
 FIGURA HUMANA: ${aval.figuraHumana ? figuraMap[aval.figuraHumana] || aval.figuraHumana : 'Não observado'}
 
-${aval.obs ? 'OBSERVAÇÕES DA PROFESSORA: ' + aval.obs : ''}
+${aval.obs ? 'OBSERVAÇÕES ADICIONAIS: ' + aval.obs : ''}
 
-Escreva apenas o texto do relatório, sem título, sem introdução, sem assinatura.`;
-}
-
-async function gerarRelatorio() {
-  const aluno = state.alunos.find(a => a.id === currentAlunoId);
-  const aval = state.avaliacoes[currentAlunoId] || {};
-  const turma = state.turmas.find(t => t.id === aluno.turmaId);
-  const figuraMap = { nao_desenvolveu: 'ainda não desenvolveu esta habilidade', duas_partes: 'representa a figura humana com pelo menos duas partes', tres_partes: 'representa a figura humana com três ou mais partes', completa: 'apresenta representação completa da figura humana (com olhos, boca, cabelo e todas as partes do corpo)' };
-
-  function descCriterio(lista, avalObj) {
-    return lista.map(c => `- ${c.texto}: ${avalObj[c.id] === 'S' ? 'Satisfatório' : avalObj[c.id] === 'D' ? 'Em desenvolvimento' : avalObj[c.id] === 'N' ? 'Não adquirido' : 'Não avaliado'}`).join('\n');
-  }
-
-  const aluno = state.alunos.find(a => a.id === currentAlunoId);
-  const aval = state.avaliacoes[currentAlunoId] || {};
-  const turma = state.turmas.find(t => t.id === aluno.turmaId);
-  const prompt = buildPrompt(aluno, aval, turma);
+Escreva apenas o parágrafo do relatório, sem título, sem introdução.`;
 
   const outDiv = document.getElementById('relatorio-output');
   outDiv.innerHTML = '<div class="relatorio-loading"><span class="spin">⏳</span><br><br>A IA está gerando o relatório…</div>';
@@ -1270,82 +1254,6 @@ async function gerarRelatorio() {
     outDiv.innerHTML = '<div class="empty-state"><div class="icon">⚠️</div><p>Erro ao gerar relatório. Verifique sua conexão.</p></div>';
   }
   document.getElementById('btn-gerar').disabled = false;
-}
-
-// ===================== GERAÇÃO EM LOTE =====================
-let loteEmAndamento = false;
-
-async function gerarLote(turmaId) {
-  if (loteEmAndamento) { toast('Aguarde, geração em andamento…'); return; }
-  const alunos = state.alunos.filter(a => (!turmaId || a.turmaId === turmaId) && state.avaliacoes[a.id]);
-  if (!alunos.length) { toast('Nenhum aluno com avaliação para gerar.'); return; }
-  if (!confirm(`Gerar relatórios para ${alunos.length} aluno(s)? Isso pode levar alguns minutos.`)) return;
-  loteEmAndamento = true;
-  let ok = 0, erro = 0;
-  for (const aluno of alunos) {
-    const aval = state.avaliacoes[aluno.id] || {};
-    const turma = state.turmas.find(t => t.id === aluno.turmaId);
-    const prompt = buildPrompt(aluno, aval, turma);
-    try {
-      const res = await fetch('/api/gerar-relatorio', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.texto) throw new Error();
-      state.relatorios[aluno.id] = data.texto;
-      await db.from('relatorios').upsert({ aluno_id: aluno.id, texto: data.texto, atualizado_em: new Date().toISOString() });
-      ok++;
-    } catch { erro++; }
-    toast(`Gerados: ${ok} ✅  Erros: ${erro} ❌  de ${alunos.length}`);
-  }
-  loteEmAndamento = false;
-  renderRelatorios(); renderAlunos(); renderDashboard();
-  toast(`Concluído! ${ok} gerados, ${erro} com erro.`);
-}
-
-// ===================== IMPRESSÃO EM LOTE (PDF) =====================
-function imprimirLote(turmaId) {
-  const alunos = state.alunos
-    .filter(a => (!turmaId || a.turmaId === turmaId) && state.relatorios[a.id])
-    .sort((a, b) => a.nome.localeCompare(b.nome));
-  if (!alunos.length) { toast('Nenhum relatório gerado para imprimir.'); return; }
-  const turma = turmaId ? state.turmas.find(t => t.id === turmaId) : null;
-  const win = window.open('', '_blank');
-  const linhas = alunos.map(a => {
-    const t = state.turmas.find(t => t.id === a.turmaId);
-    return `<div class="aluno-bloco">
-      <div class="aluno-header">
-        <strong>${a.nome}</strong>
-        <span>${t ? t.nome : ''}</span>
-        ${a.especial ? `<span class="esp">⭐ Ed. Especial${a.diagnostico ? ' – ' + a.diagnostico : ''}</span>` : ''}
-      </div>
-      <div class="aluno-texto">${state.relatorios[a.id]}</div>
-    </div>`;
-  }).join('');
-  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-    <title>Relatórios – ${turma ? turma.nome : 'Todos os alunos'}</title>
-    <style>
-      @page { size: A4; margin: 1.5cm; }
-      body { font-family: Georgia, serif; font-size: 12pt; color: #1c2e26; }
-      h1 { font-size: 14pt; color: #1b4332; border-bottom: 2px solid #52b788; padding-bottom: 6px; margin-bottom: 4px; }
-      .meta { font-size: 10pt; color: #5a7a68; margin-bottom: 20px; }
-      .aluno-bloco { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid #ccc; page-break-inside: avoid; }
-      .aluno-bloco:last-child { border-bottom: none; }
-      .aluno-header { display: flex; gap: 12px; align-items: baseline; margin-bottom: 6px; flex-wrap: wrap; }
-      .aluno-header strong { font-size: 12pt; color: #1b4332; }
-      .aluno-header span { font-size: 10pt; color: #5a7a68; }
-      .esp { background: #fef3e2; color: #a05c00; padding: 1px 6px; border-radius: 4px; font-size: 9pt; }
-      .aluno-texto { font-size: 11pt; line-height: 1.7; text-align: justify; }
-    </style>
-  </head><body>
-    <h1>Relatórios Educação Infantil – CEMEI Vila da Paz</h1>
-    <p class="meta">${turma ? turma.nome + ' · ' : ''}1º Semestre 2026 · Prof.ª Auxiliar Paula Ramoni da Silva · ${alunos.length} aluno(s)</p>
-    ${linhas}
-  </body></html>`);
-  win.document.close();
-  win.print();
 }
 
 function editarRelatorio() {
