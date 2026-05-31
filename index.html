@@ -3517,42 +3517,54 @@ function renderSemanasList() {
       var tdAtv = document.createElement('td');
       tdAtv.style.cssText = 'vertical-align:top;padding:8px 10px;';
       var taAtv = document.createElement('textarea');
-      taAtv.style.cssText = 'width:100%;min-height:60px;padding:6px 8px;border:1.5px solid var(--cinza-borda);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;background:var(--cinza-bg);';
+      taAtv.style.cssText = 'width:100%;min-height:60px;padding:6px 32px 6px 8px;border:1.5px solid var(--cinza-borda);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;background:var(--cinza-bg);';
       taAtv.placeholder = 'Atividades do dia…';
       taAtv.id = 'sl-atv-' + uid;
       taAtv.value = dia.atividades || '';
       taAtv.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); }; })(idx, di, uid);
       taAtv.onfocus = function(){ this.style.borderColor='var(--verde-claro)'; this.style.background='white'; };
       taAtv.onblur  = function(){ this.style.borderColor='var(--cinza-borda)'; this.style.background='var(--cinza-bg)'; };
-      tdAtv.appendChild(taAtv);
+      var wAtv = document.createElement('div'); wAtv.className = 'voice-wrap';
+      var mAtv = document.createElement('button'); mAtv.type='button'; mAtv.className='voice-btn'; mAtv.title='Falar'; mAtv.innerHTML='🎤';
+      (function(u){ mAtv.onclick = function(){ voiceInput(this, 'sl-atv-'+u); }; })(uid);
+      wAtv.appendChild(taAtv); wAtv.appendChild(mAtv);
+      tdAtv.appendChild(wAtv);
       tr.appendChild(tdAtv);
 
       // Recurso inline
       var tdRec = document.createElement('td');
       tdRec.style.cssText = 'vertical-align:top;padding:8px 10px;';
       var taRec = document.createElement('textarea');
-      taRec.style.cssText = 'width:100%;min-height:60px;padding:6px 8px;border:1.5px solid var(--cinza-borda);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;background:var(--cinza-bg);';
+      taRec.style.cssText = 'width:100%;min-height:60px;padding:6px 32px 6px 8px;border:1.5px solid var(--cinza-borda);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;background:var(--cinza-bg);';
       taRec.placeholder = 'Recursos…';
       taRec.id = 'sl-rec-' + uid;
       taRec.value = dia.recurso || '';
       taRec.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); }; })(idx, di, uid);
       taRec.onfocus = function(){ this.style.borderColor='var(--verde-claro)'; this.style.background='white'; };
       taRec.onblur  = function(){ this.style.borderColor='var(--cinza-borda)'; this.style.background='var(--cinza-bg)'; };
-      tdRec.appendChild(taRec);
+      var wRec = document.createElement('div'); wRec.className = 'voice-wrap';
+      var mRec = document.createElement('button'); mRec.type='button'; mRec.className='voice-btn'; mRec.title='Falar'; mRec.innerHTML='🎤';
+      (function(u){ mRec.onclick = function(){ voiceInput(this, 'sl-rec-'+u); }; })(uid);
+      wRec.appendChild(taRec); wRec.appendChild(mRec);
+      tdRec.appendChild(wRec);
       tr.appendChild(tdRec);
 
       // Obs inline
       var tdObs = document.createElement('td');
       tdObs.style.cssText = 'vertical-align:top;padding:8px 10px;';
       var taObs = document.createElement('textarea');
-      taObs.style.cssText = 'width:100%;min-height:60px;padding:6px 8px;border:1.5px solid var(--cinza-borda);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;background:var(--cinza-bg);';
+      taObs.style.cssText = 'width:100%;min-height:60px;padding:6px 32px 6px 8px;border:1.5px solid var(--cinza-borda);border-radius:6px;font-size:12px;font-family:inherit;resize:vertical;background:var(--cinza-bg);';
       taObs.placeholder = 'Observações…';
       taObs.id = 'sl-obs-' + uid;
       taObs.value = dia.obs || '';
       taObs.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); }; })(idx, di, uid);
       taObs.onfocus = function(){ this.style.borderColor='var(--verde-claro)'; this.style.background='white'; };
       taObs.onblur  = function(){ this.style.borderColor='var(--cinza-borda)'; this.style.background='var(--cinza-bg)'; };
-      tdObs.appendChild(taObs);
+      var wObs = document.createElement('div'); wObs.className = 'voice-wrap';
+      var mObs = document.createElement('button'); mObs.type='button'; mObs.className='voice-btn'; mObs.title='Falar'; mObs.innerHTML='🎤';
+      (function(u){ mObs.onclick = function(){ voiceInput(this, 'sl-obs-'+u); }; })(uid);
+      wObs.appendChild(taObs); wObs.appendChild(mObs);
+      tdObs.appendChild(wObs);
       tr.appendChild(tdObs);
 
       tbody.appendChild(tr);
