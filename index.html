@@ -1400,12 +1400,36 @@ let state = { turmas: [], alunos: [], avaliacoes: {}, relatorios: {} };
 let currentAlunoId = null;
 let currentTab = 'avaliacao';
 
+async function verificarECriarTabelas() {
+  // Verifica e cria tabela planejamentos se não existir,
+  // e garante que tem as colunas necessárias.
+  try {
+    // Tenta fazer um select limitado — se falhar, tabela não existe
+    const { error } = await db.from('planejamentos').select('chave, dados').limit(1);
+    if (error && (error.code === '42P01' || error.message?.includes('does not exist'))) {
+      // Tabela não existe — cria via RPC (requer função no Supabase) ou avisa
+      console.warn('Tabela planejamentos não encontrada. Crie-a com o SQL fornecido.');
+      toast('⚠️ Tabela "planejamentos" não encontrada no Supabase. Veja o console.');
+    }
+    // Verifica coluna atualizado_em (pode não existir em versões antigas)
+    const { error: err2 } = await db.from('planejamentos').select('atualizado_em').limit(1);
+    if (err2 && err2.message?.includes('atualizado_em')) {
+      // Coluna não existe — tenta adicionar via rpc ou apenas avisa
+      console.warn('Coluna atualizado_em ausente na tabela planejamentos — não é crítico.');
+    }
+  } catch(e) {
+    console.warn('Erro ao verificar tabela planejamentos:', e);
+  }
+}
+
 async function loadState() {
-  const [{ data: turmas }, { data: alunos }, { data: avals }, { data: rels }] = await Promise.all([
+  await verificarECriarTabelas();
+  const [{ data: turmas }, { data: alunos }, { data: avals }, { data: rels }, { data: plans, error: planErr }] = await Promise.all([
     db.from('turmas').select('*'),
     db.from('alunos').select('*'),
     db.from('avaliacoes').select('*'),
-    db.from('relatorios').select('*')
+    db.from('relatorios').select('*'),
+    db.from('planejamentos').select('*')
   ]);
   state.turmas  = turmas  || [];
   state.alunos  = (alunos || []).map(a => ({ ...a, turmaId: a.turma_id }));
@@ -1413,6 +1437,15 @@ async function loadState() {
   (avals || []).forEach(av => { state.avaliacoes[av.aluno_id] = av.dados; });
   state.relatorios = {};
   (rels  || []).forEach(r  => { state.relatorios[r.aluno_id]  = r.texto; });
+  // Carrega planejamentos
+  planState = {};
+  if (!planErr && plans) {
+    plans.forEach(p => { try { planState[p.chave] = JSON.parse(p.dados); } catch(e) {} });
+  } else {
+    // Fallback: localStorage caso tabela não exista ou retorne erro
+    planCarregar();
+    if (planErr) console.warn('Erro ao carregar planejamentos do Supabase:', planErr.message);
+  }
   renderDashboard();
 }
 
@@ -3182,6 +3215,61 @@ const DIAS_SEMANA = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 let planState = {};
 let planEditandoSemanaIdx = null;
 
+// ---- Persistência do planejamento via Supabase ----
+function planCarregar() {
+  // fallback localStorage (usado só se Supabase falhar)
+  try {
+    var raw = localStorage.getItem('planState_v1');
+    if (raw) planState = JSON.parse(raw);
+  } catch(e) { planState = {}; }
+}
+
+let _planSalvarTimer = null;
+function planSalvar() {
+  // Salva no localStorage imediatamente como backup
+  try { localStorage.setItem('planState_v1', JSON.stringify(planState)); } catch(e) {}
+  // Debounce: salva no Supabase 800ms após última alteração
+  clearTimeout(_planSalvarTimer);
+  _planSalvarTimer = setTimeout(planSalvarSupabase, 800);
+}
+
+async function planSalvarSupabase() {
+  if (!db) return;
+  syncStart();
+  try {
+    const rows = Object.entries(planState).map(([chave, dados]) => ({
+      chave,
+      dados: JSON.stringify(dados),
+      atualizado_em: new Date().toISOString()
+    }));
+    if (!rows.length) { syncOk(); return; }
+    const { error } = await db.from('planejamentos').upsert(rows, { onConflict: 'chave' });
+    if (error) {
+      // Tabela não existe ou coluna faltando — mostra SQL para corrigir
+      if (error.code === '42P01' || error.message?.includes('does not exist')) {
+        syncErro();
+        const sql = `-- Execute este SQL no Supabase → SQL Editor:\n\ncreate table if not exists planejamentos (\n  chave text primary key,\n  dados text not null,\n  atualizado_em timestamptz default now()\n);\nalter table planejamentos enable row level security;\ncreate policy if not exists \"Acesso autenticado\" on planejamentos for all using (auth.role() = \'authenticated\');`;
+        console.error('Tabela planejamentos não encontrada.\n' + sql);
+        toast('⚠️ Tabela "planejamentos" ausente no Supabase — veja o console (F12)');
+      } else if (error.message?.includes('atualizado_em')) {
+        // Coluna atualizado_em não existe — tenta sem ela
+        const rowsSemData = Object.entries(planState).map(([chave, dados]) => ({ chave, dados: JSON.stringify(dados) }));
+        const { error: err2 } = await db.from('planejamentos').upsert(rowsSemData, { onConflict: 'chave' });
+        if (err2) { syncErro(); console.error('Erro ao salvar planejamento:', err2); }
+        else syncOk();
+      } else {
+        syncErro();
+        console.error('Erro ao salvar planejamento:', error);
+      }
+    } else {
+      syncOk();
+    }
+  } catch(e) {
+    syncErro();
+    console.error('Erro ao salvar planejamento:', e);
+  }
+}
+
 function planKey() {
   const m = document.getElementById('plan-mes').value;
   const a = document.getElementById('plan-ano').value;
@@ -3421,6 +3509,7 @@ function salvarDiaInline(semIdx, di, uid) {
   if (taAtv) dia.atividades = taAtv.value;
   if (taRec) dia.recurso    = taRec.value;
   if (taObs) dia.obs        = taObs.value;
+  planSalvar();
 }
 
 // Versão do initHabDropdown para inline (usa uid string em vez de índice numérico)
@@ -3554,6 +3643,7 @@ function initHabDropdownInline(uid, selecionados, semIdx, di) {
     // Atualiza o hidden também
     var h = document.getElementById('sl-cod-' + uid);
     if (h) h.value = planState[key].semanas[semIdx].dias[di].cod;
+    planSalvar();
   };
 }
 
@@ -3592,6 +3682,7 @@ function removerSemana(idx) {
   const key = planKey();
   if (!confirm('Remover esta semana?')) return;
   planState[key].semanas.splice(idx, 1);
+  planSalvar();
   renderSemanasList();
   if (!planState[key].semanas.length) document.getElementById('plan-empty').style.display = '';
 }
@@ -3788,6 +3879,7 @@ function salvarSemanaModal() {
     dia.recurso    = document.getElementById(`pdia-rec-${di}`).value.trim();
     dia.obs        = document.getElementById(`pdia-obs-${di}`).value.trim();
   });
+  planSalvar();
   closeModal('modal-planejamento-semana');
   renderSemanasList();
   toast('Semana salva! ✅');
