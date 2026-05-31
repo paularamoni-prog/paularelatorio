@@ -554,9 +554,9 @@
   </div>
   <nav class="sidebar-nav">
     <div class="nav-item active" onclick="goTo('dashboard')"><span class="icon">🏠</span> Início</div>
-    <div class="nav-item" onclick="goTo('turmas')"><span class="icon">🏫</span> Turmas</div>
     <div class="nav-item" onclick="goTo('alunos')"><span class="icon">👧</span> Alunos</div>
     <div class="nav-item" onclick="goTo('relatorios')"><span class="icon">📄</span> Relatórios</div>
+    <div class="nav-item" onclick="goTo('turmas')"><span class="icon">🏫</span> Turmas</div>
   </nav>
   <div class="sidebar-footer">
     <div class="semester-badge">1º Semestre 2026</div>
@@ -1107,7 +1107,7 @@ function goTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll('.nav-item')[['dashboard','turmas','alunos','relatorios','importar'].indexOf(page)]?.classList.add('active');
+  document.querySelectorAll('.nav-item')[['dashboard','alunos','relatorios','turmas','importar'].indexOf(page)]?.classList.add('active');
   document.getElementById('page-title').textContent = pageNames[page];
   closeSidebar();
   if (page === 'dashboard') renderDashboard();
