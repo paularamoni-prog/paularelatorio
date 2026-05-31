@@ -323,6 +323,83 @@
   }
   .btn-sair:hover { background: rgba(255,255,255,0.1); color: white; }
 
+  /* CARD PANORAMA ALUNO */
+  .modal-panorama .modal { max-width: 640px; }
+  .panorama-header {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 20px;
+  }
+  .panorama-avatar {
+    width: 52px; height: 52px; border-radius: 50%;
+    background: var(--verde-menta); border: 2px solid var(--verde-claro);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px; flex-shrink: 0;
+  }
+  .panorama-nome { font-family: 'Lora', serif; font-size: 20px; color: var(--verde-escuro); font-weight: 700; }
+  .panorama-turma { font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+  .panorama-diag { display: inline-flex; align-items: center; gap: 5px; background: #fef3e2; color: #a05c00; border-radius: 20px; padding: 3px 10px; font-size: 11px; font-weight: 600; margin-top: 6px; }
+  .panorama-scores {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 20px;
+  }
+  .score-box {
+    border-radius: 12px; padding: 16px 12px; text-align: center;
+  }
+  .score-box .score-val { font-family: 'Lora', serif; font-size: 30px; font-weight: 700; line-height: 1; }
+  .score-box .score-label { font-size: 11px; font-weight: 700; letter-spacing: 0.5px; margin-top: 4px; text-transform: uppercase; }
+  .score-box.s { background: #d8f3dc; color: var(--verde-escuro); }
+  .score-box.d { background: #fef3e2; color: #a05c00; }
+  .score-box.n { background: #ffe0e0; color: var(--nao-adquirido); }
+  .panorama-rel {
+    background: linear-gradient(135deg, var(--verde-menta) 0%, #fff 100%);
+    border: 1.5px solid var(--verde-claro); border-radius: 12px;
+    padding: 16px 18px; font-size: 13.5px; line-height: 1.8;
+    font-family: 'Lora', serif; color: var(--texto); margin-top: 4px;
+    max-height: 180px; overflow-y: auto;
+  }
+  .panorama-sem-rel {
+    background: var(--cinza-bg); border: 1.5px dashed var(--cinza-borda);
+    border-radius: 12px; padding: 20px; text-align: center;
+    color: var(--texto-suave); font-size: 13px;
+  }
+  .panorama-section-title {
+    font-size: 11px; font-weight: 700; color: var(--texto-suave);
+    text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px;
+  }
+  .panorama-barra-wrap { margin-bottom: 14px; }
+  .panorama-barra-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+  .panorama-barra-bg { flex: 1; height: 8px; background: var(--cinza-borda); border-radius: 99px; overflow: hidden; }
+  .panorama-barra-fill { height: 100%; border-radius: 99px; transition: width .4s; }
+  .panorama-barra-pct { font-size: 11px; font-weight: 600; color: var(--texto-suave); width: 30px; text-align: right; }
+  .panorama-barra-label { font-size: 12px; color: var(--texto); width: 80px; }
+
+  /* MODAL LOTE SELEÇÃO */
+  .lote-turma-card {
+    border: 2px solid var(--cinza-borda); border-radius: 10px; padding: 12px 16px;
+    cursor: pointer; transition: all .15s; margin-bottom: 8px; background: white;
+  }
+  .lote-turma-card:hover { border-color: var(--verde-claro); background: var(--verde-menta); }
+  .lote-turma-card.sel { border-color: var(--verde); background: var(--verde-menta); }
+  .lote-turma-card .lc-nome { font-family: 'Lora', serif; font-size: 14px; font-weight: 700; color: var(--verde-escuro); }
+  .lote-turma-card .lc-info { font-size: 11px; color: var(--texto-suave); margin-top: 2px; }
+  .lote-aluno-item {
+    display: flex; align-items: center; gap: 10px; padding: 8px 12px;
+    border-bottom: 1px solid var(--cinza-borda); cursor: pointer; font-size: 13px;
+    transition: background .1s; background: white;
+  }
+  .lote-aluno-item:last-child { border-bottom: none; }
+  .lote-aluno-item:hover { background: var(--verde-menta); }
+  .lote-aluno-item input[type=checkbox] { accent-color: var(--verde); width: 16px; height: 16px; cursor: pointer; }
+  .lote-aluno-item label { cursor: pointer; flex: 1; }
+  .lote-aluno-item .badge { flex-shrink: 0; }
+  .lote-steps { display: flex; gap: 0; margin-bottom: 20px; }
+  .lote-step { flex: 1; text-align: center; font-size: 12px; font-weight: 600; padding: 8px 4px; border-bottom: 2px solid var(--cinza-borda); color: var(--texto-suave); transition: all .2s; }
+  .lote-step.active { color: var(--verde); border-bottom-color: var(--verde); }
+  .lote-step.done { color: var(--verde-claro); border-bottom-color: var(--verde-claro); }
+  .nome-clicavel {
+    cursor: pointer; color: var(--verde-escuro); font-weight: 600;
+    transition: color .15s;
+  }
+  .nome-clicavel:hover { color: var(--verde); text-decoration: underline; }
+
   @media print {
     .sidebar, .topbar, .modal-overlay, .toast { display: none !important; }
     .main { margin-left: 0; }
@@ -591,7 +668,7 @@
             <select id="filtro-rel-turma" style="padding:8px 12px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;" onchange="renderRelatorios()">
               <option value="">Todas as turmas</option>
             </select>
-            <button class="btn btn-primary btn-sm" onclick="gerarLote(document.getElementById('filtro-rel-turma').value)">✨ Gerar em lote</button>
+            <button class="btn btn-primary btn-sm" onclick="abrirModalLote()">✨ Gerar em lote</button>
             <button class="btn btn-outline btn-sm" onclick="imprimirLote(document.getElementById('filtro-rel-turma').value)">🖨️ Imprimir turma (PDF)</button>
           </div>
         </div>
@@ -834,6 +911,80 @@
       <button class="btn btn-outline" onclick="copiarRelatorioVer()">📋 Copiar</button>
       <button class="btn btn-outline" onclick="imprimirVer()">🖨️ Imprimir</button>
       <button class="btn btn-primary" onclick="closeModal('modal-ver-relatorio')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PANORAMA ALUNO -->
+<div class="modal-overlay modal-panorama" id="modal-panorama">
+  <div class="modal" style="max-width:620px;">
+    <div class="modal-header">
+      <h2>📊 Panorama do Aluno</h2>
+      <button class="modal-close" onclick="closeModal('modal-panorama')">×</button>
+    </div>
+    <div class="modal-body" id="panorama-body">
+      <!-- preenchido via JS -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline btn-sm" id="panorama-btn-avaliar" onclick="">📋 Avaliar</button>
+      <button class="btn btn-primary" onclick="closeModal('modal-panorama')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL GERAR EM LOTE -->
+<div class="modal-overlay" id="modal-lote">
+  <div class="modal" style="max-width:580px;">
+    <div class="modal-header">
+      <div>
+        <h2>✨ Gerar Relatórios em Lote</h2>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:3px;" id="lote-subtitulo">Selecione a turma</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-lote')">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="lote-steps">
+        <div class="lote-step active" id="lstep-1">1. Turma</div>
+        <div class="lote-step" id="lstep-2">2. Alunos</div>
+        <div class="lote-step" id="lstep-3">3. Confirmar</div>
+      </div>
+
+      <!-- STEP 1: escolher turma -->
+      <div id="lote-step1">
+        <div style="font-size:13px;color:var(--texto-suave);margin-bottom:14px;">Escolha uma turma ou gere para <strong>todos os alunos</strong>:</div>
+        <div id="lote-turmas-lista"></div>
+      </div>
+
+      <!-- STEP 2: escolher alunos -->
+      <div id="lote-step2" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <span style="font-size:13px;color:var(--texto-suave);">Marque os alunos que deseja incluir:</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline btn-sm" onclick="loteSelectAll(true)">Todos</button>
+            <button class="btn btn-outline btn-sm" onclick="loteSelectAll(false)">Nenhum</button>
+          </div>
+        </div>
+        <div class="card" style="max-height:320px;overflow-y:auto;">
+          <div id="lote-alunos-lista"></div>
+        </div>
+        <div style="margin-top:10px;font-size:12px;color:var(--texto-suave);" id="lote-sel-info"></div>
+      </div>
+
+      <!-- STEP 3: confirmar -->
+      <div id="lote-step3" style="display:none;">
+        <div style="background:var(--verde-menta);border:1.5px solid var(--verde-claro);border-radius:12px;padding:18px;font-size:13px;color:var(--verde-escuro);" id="lote-resumo"></div>
+        <div id="lote-progresso" style="display:none;margin-top:18px;">
+          <div style="font-size:13px;font-weight:600;color:var(--verde-escuro);margin-bottom:8px;" id="lote-prog-texto">Gerando…</div>
+          <div style="background:var(--cinza-borda);border-radius:99px;height:10px;overflow:hidden;">
+            <div id="lote-prog-bar" style="height:100%;background:var(--verde-claro);border-radius:99px;width:0%;transition:width .3s;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="lote-btn-voltar" onclick="loteVoltar()" style="display:none;">← Voltar</button>
+      <button class="btn btn-outline" onclick="closeModal('modal-lote')" id="lote-btn-cancelar">Cancelar</button>
+      <button class="btn btn-primary" id="lote-btn-prox" onclick="loteProximo()">Próximo →</button>
     </div>
   </div>
 </div>
@@ -1134,7 +1285,7 @@ function renderAlunos() {
     const turma = state.turmas.find(t => t.id === a.turmaId);
     const temRel = !!state.relatorios[a.id];
     return `<tr>
-      <td><strong>${a.nome}</strong></td>
+      <td><span class="nome-clicavel" onclick="abrirPanorama('${a.id}')">${a.nome}</span></td>
       <td><span class="badge badge-turma">${turma ? turma.nome : '—'}</span></td>
       <td>${a.especial ? '<span class="badge badge-especial">⭐ Especial</span>' : '<span style="color:var(--texto-suave);font-size:12px;">—</span>'}</td>
       <td style="font-size:12px;color:var(--texto-suave);">${a.diagnostico || '—'}</td>
@@ -1445,6 +1596,276 @@ function imprimirRelatorioById(id) {
   const win = window.open('', '_blank');
   win.document.write(`<html><head><title>Relatório - ${aluno.nome}</title><style>body{font-family:Georgia,serif;max-width:700px;margin:40px auto;font-size:14px;line-height:1.8;color:#1c2e26;}h2{font-size:18px;color:#1b4332;border-bottom:2px solid #52b788;padding-bottom:8px;}</style></head><body><h2>Relatório – CEMEI Vila da Paz</h2><p style="font-size:12px;color:#5a7a68;margin:8px 0 24px;">Aluno: <strong>${aluno.nome}</strong></p><p>${texto}</p></body></html>`);
   win.document.close(); win.print();
+}
+
+// ===================== PANORAMA ALUNO =====================
+function abrirPanorama(alunoId) {
+  const aluno = state.alunos.find(a => a.id === alunoId);
+  if (!aluno) return;
+  const turma = state.turmas.find(t => t.id === aluno.turmaId);
+  const aval = state.avaliacoes[alunoId] || {};
+  const rel = state.relatorios[alunoId] || '';
+
+  // contar S, D, N em todos os critérios
+  const todosCriterios = [...CRITERIOS.cognitivos, ...CRITERIOS.motorGrosso, ...CRITERIOS.motorFino, ...CRITERIOS.esquema];
+  let cS = 0, cD = 0, cN = 0, cTotal = todosCriterios.length;
+  todosCriterios.forEach(c => {
+    if (aval[c.id] === 'S') cS++;
+    else if (aval[c.id] === 'D') cD++;
+    else if (aval[c.id] === 'N') cN++;
+  });
+
+  // barras por área
+  function areaCounts(lista) {
+    let s=0,d=0,n=0;
+    lista.forEach(c => { if(aval[c.id]==='S') s++; else if(aval[c.id]==='D') d++; else if(aval[c.id]==='N') n++; });
+    return { s, d, n, total: lista.length };
+  }
+  const areas = [
+    { nome: '🧠 Cognitivo', counts: areaCounts(CRITERIOS.cognitivos) },
+    { nome: '🏃 Motor Grosso', counts: areaCounts(CRITERIOS.motorGrosso) },
+    { nome: '✏️ Motor Fino', counts: areaCounts(CRITERIOS.motorFino) },
+    { nome: '🧍 Esquema Corporal', counts: areaCounts(CRITERIOS.esquema) },
+  ];
+
+  function barra(val, total, cor) {
+    const pct = total ? Math.round(val/total*100) : 0;
+    return `<div class="panorama-barra-bg"><div class="panorama-barra-fill" style="width:${pct}%;background:${cor};"></div></div><div class="panorama-barra-pct">${pct}%</div>`;
+  }
+
+  const barrasHTML = areas.map(a => {
+    const t = a.counts.total;
+    const pctS = t ? Math.round(a.counts.s/t*100) : 0;
+    return `<div style="margin-bottom:10px;">
+      <div style="font-size:12px;font-weight:600;color:var(--texto);margin-bottom:4px;">${a.nome}</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="panorama-barra-bg" style="flex:1;">
+          <div class="panorama-barra-fill" style="width:${pctS}%;background:${pctS>=70?'var(--satisfatorio)':pctS>=50?'var(--desenvolvimento)':'var(--nao-adquirido)'};"></div>
+        </div>
+        <span style="font-size:11px;color:var(--texto-suave);width:30px;">${a.counts.s}/${t} S</span>
+      </div>
+    </div>`;
+  }).join('');
+
+  const temAval = cS+cD+cN > 0;
+
+  document.getElementById('panorama-body').innerHTML = `
+    <div class="panorama-header">
+      <div class="panorama-avatar">${aluno.nome.charAt(0).toUpperCase()}</div>
+      <div>
+        <div class="panorama-nome">${aluno.nome}</div>
+        <div class="panorama-turma">${turma ? turma.nome : '—'}</div>
+        ${aluno.especial ? `<div class="panorama-diag">⭐ Ed. Especial${aluno.diagnostico ? ' · ' + aluno.diagnostico : ''}</div>` : ''}
+      </div>
+    </div>
+
+    ${temAval ? `
+    <div class="panorama-section-title">Resumo da Avaliação (${cTotal} critérios)</div>
+    <div class="panorama-scores">
+      <div class="score-box s"><div class="score-val">${cS}</div><div class="score-label">Satisfatório</div></div>
+      <div class="score-box d"><div class="score-val">${cD}</div><div class="score-label">Desenv.</div></div>
+      <div class="score-box n"><div class="score-val">${cN}</div><div class="score-label">Não adq.</div></div>
+    </div>
+    <div class="panorama-section-title">Desempenho por Área</div>
+    <div style="margin-bottom:20px;">${barrasHTML}</div>
+    ` : `<div class="panorama-sem-rel" style="margin-bottom:20px;"><div style="font-size:28px;margin-bottom:8px;">📋</div><p>Nenhuma avaliação registrada para este aluno ainda.</p></div>`}
+
+    <div class="panorama-section-title">Relatório Narrativo</div>
+    ${rel
+      ? `<div class="panorama-rel">${rel}</div>`
+      : `<div class="panorama-sem-rel"><div style="font-size:28px;margin-bottom:8px;">✨</div><p>Relatório ainda não gerado.<br><span style="font-size:12px;">Abra a avaliação para gerar com IA.</span></p></div>`}
+  `;
+
+  document.getElementById('panorama-btn-avaliar').onclick = () => { closeModal('modal-panorama'); openAvaliacao(alunoId); };
+  openModal('modal-panorama');
+}
+
+// ===================== MODAL GERAR EM LOTE =====================
+let loteStep = 1;
+let loteTurmaId = null; // null = todas
+let loteAlunosSel = [];
+
+function abrirModalLote() {
+  loteStep = 1;
+  loteTurmaId = null;
+  loteAlunosSel = [];
+  renderLoteStep1();
+  document.getElementById('lote-btn-voltar').style.display = 'none';
+  document.getElementById('lote-btn-prox').textContent = 'Próximo →';
+  document.getElementById('lote-btn-prox').disabled = false;
+  document.getElementById('lote-btn-cancelar').style.display = '';
+  openModal('modal-lote');
+}
+
+function renderLoteStep1() {
+  // atualizar steps
+  ['lstep-1','lstep-2','lstep-3'].forEach((id,i) => {
+    document.getElementById(id).className = 'lote-step' + (i===0?' active':'');
+  });
+  document.getElementById('lote-step1').style.display = '';
+  document.getElementById('lote-step2').style.display = 'none';
+  document.getElementById('lote-step3').style.display = 'none';
+  document.getElementById('lote-subtitulo').textContent = 'Passo 1 de 3 — Selecione a turma';
+
+  const lista = document.getElementById('lote-turmas-lista');
+  // Opção "Todas"
+  const todasAlunosComAval = state.alunos.filter(a => state.avaliacoes[a.id]).length;
+  let html = `<div class="lote-turma-card ${loteTurmaId===null?'sel':''}" onclick="selecionarLoteTurma(null, this)">
+    <div class="lc-nome">🌐 Todas as turmas</div>
+    <div class="lc-info">${todasAlunosComAval} aluno(s) com avaliação</div>
+  </div>`;
+  html += state.turmas.map(t => {
+    const cnt = state.alunos.filter(a => a.turmaId === t.id && state.avaliacoes[a.id]).length;
+    return `<div class="lote-turma-card ${loteTurmaId===t.id?'sel':''}" onclick="selecionarLoteTurma('${t.id}', this)">
+      <div class="lc-nome">🏫 ${t.nome}</div>
+      <div class="lc-info">${t.turno} · ${t.faixa} · ${cnt} aluno(s) com avaliação</div>
+    </div>`;
+  }).join('');
+  lista.innerHTML = html;
+}
+
+function selecionarLoteTurma(turmaId, el) {
+  loteTurmaId = turmaId;
+  document.querySelectorAll('#lote-turmas-lista .lote-turma-card').forEach(c => c.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function renderLoteStep2() {
+  ['lstep-1','lstep-2','lstep-3'].forEach((id,i) => {
+    document.getElementById(id).className = 'lote-step' + (i<1?' done':i===1?' active':'');
+  });
+  document.getElementById('lote-step1').style.display = 'none';
+  document.getElementById('lote-step2').style.display = '';
+  document.getElementById('lote-step3').style.display = 'none';
+  document.getElementById('lote-subtitulo').textContent = 'Passo 2 de 3 — Selecione os alunos';
+
+  const alunos = state.alunos
+    .filter(a => (loteTurmaId===null || a.turmaId===loteTurmaId) && state.avaliacoes[a.id])
+    .sort((a,b) => a.nome.localeCompare(b.nome));
+
+  if (!loteAlunosSel.length) loteAlunosSel = alunos.map(a => a.id);
+
+  const lista = document.getElementById('lote-alunos-lista');
+  if (!alunos.length) {
+    lista.innerHTML = '<div class="acc-empty">Nenhum aluno com avaliação nesta seleção.</div>';
+    return;
+  }
+  lista.innerHTML = alunos.map(a => {
+    const temRel = !!state.relatorios[a.id];
+    const sel = loteAlunosSel.includes(a.id);
+    return `<label class="lote-aluno-item">
+      <input type="checkbox" id="lchk-${a.id}" ${sel?'checked':''} onchange="loteToggleAluno('${a.id}', this.checked)">
+      <label for="lchk-${a.id}" style="flex:1;cursor:pointer;">${a.nome}</label>
+      ${temRel ? '<span class="badge badge-sat" style="font-size:10px;">✅ já tem</span>' : ''}
+    </label>`;
+  }).join('');
+  atualizarLoteSelInfo();
+}
+
+function loteToggleAluno(id, checked) {
+  if (checked && !loteAlunosSel.includes(id)) loteAlunosSel.push(id);
+  if (!checked) loteAlunosSel = loteAlunosSel.filter(x => x !== id);
+  atualizarLoteSelInfo();
+}
+
+function loteSelectAll(val) {
+  const alunos = state.alunos.filter(a => (loteTurmaId===null || a.turmaId===loteTurmaId) && state.avaliacoes[a.id]);
+  loteAlunosSel = val ? alunos.map(a => a.id) : [];
+  alunos.forEach(a => { const chk = document.getElementById('lchk-'+a.id); if(chk) chk.checked = val; });
+  atualizarLoteSelInfo();
+}
+
+function atualizarLoteSelInfo() {
+  const info = document.getElementById('lote-sel-info');
+  if (info) info.textContent = `${loteAlunosSel.length} aluno(s) selecionado(s)`;
+}
+
+function renderLoteStep3() {
+  ['lstep-1','lstep-2','lstep-3'].forEach((id,i) => {
+    document.getElementById(id).className = 'lote-step' + (i<2?' done':' active');
+  });
+  document.getElementById('lote-step1').style.display = 'none';
+  document.getElementById('lote-step2').style.display = 'none';
+  document.getElementById('lote-step3').style.display = '';
+  document.getElementById('lote-subtitulo').textContent = 'Passo 3 de 3 — Confirmar';
+  document.getElementById('lote-progresso').style.display = 'none';
+
+  const turmaLabel = loteTurmaId ? (state.turmas.find(t=>t.id===loteTurmaId)?.nome || '') : 'Todas as turmas';
+  document.getElementById('lote-resumo').innerHTML = `
+    <div style="font-size:14px;font-weight:700;margin-bottom:8px;">🚀 Pronto para gerar!</div>
+    <div>Turma: <strong>${turmaLabel}</strong></div>
+    <div style="margin-top:4px;">Alunos selecionados: <strong>${loteAlunosSel.length}</strong></div>
+    <div style="margin-top:8px;font-size:12px;color:var(--texto-suave);">Relatórios já existentes serão <strong>substituídos</strong>.</div>
+  `;
+  document.getElementById('lote-btn-prox').textContent = '✨ Gerar Relatórios';
+}
+
+function loteProximo() {
+  if (loteStep === 1) {
+    loteStep = 2;
+    renderLoteStep2();
+    document.getElementById('lote-btn-voltar').style.display = '';
+  } else if (loteStep === 2) {
+    if (!loteAlunosSel.length) { toast('Selecione ao menos um aluno.'); return; }
+    loteStep = 3;
+    renderLoteStep3();
+  } else if (loteStep === 3) {
+    executarLote();
+  }
+}
+
+function loteVoltar() {
+  if (loteStep === 2) {
+    loteStep = 1;
+    renderLoteStep1();
+    document.getElementById('lote-btn-voltar').style.display = 'none';
+    document.getElementById('lote-btn-prox').textContent = 'Próximo →';
+  } else if (loteStep === 3) {
+    loteStep = 2;
+    renderLoteStep2();
+    document.getElementById('lote-btn-prox').textContent = 'Próximo →';
+  }
+}
+
+async function executarLote() {
+  if (loteEmAndamento) return;
+  if (!loteAlunosSel.length) return;
+  loteEmAndamento = true;
+  document.getElementById('lote-btn-prox').disabled = true;
+  document.getElementById('lote-btn-voltar').style.display = 'none';
+  document.getElementById('lote-btn-cancelar').style.display = 'none';
+  document.getElementById('lote-progresso').style.display = '';
+
+  const alunosFiltro = state.alunos.filter(a => loteAlunosSel.includes(a.id));
+  let ok = 0, erro = 0;
+  for (let i = 0; i < alunosFiltro.length; i++) {
+    const aluno = alunosFiltro[i];
+    const aval = state.avaliacoes[aluno.id] || {};
+    const turma = state.turmas.find(t => t.id === aluno.turmaId);
+    const prompt = buildPrompt(aluno, aval, turma);
+    const pct = Math.round(i/alunosFiltro.length*100);
+    document.getElementById('lote-prog-bar').style.width = pct + '%';
+    document.getElementById('lote-prog-texto').textContent = `Gerando ${i+1} de ${alunosFiltro.length}: ${aluno.nome}…`;
+    try {
+      const res = await fetch('/api/gerar-relatorio', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ prompt }) });
+      const data = await res.json();
+      if (!res.ok || !data.texto) throw new Error();
+      state.relatorios[aluno.id] = data.texto;
+      await db.from('relatorios').upsert({ aluno_id: aluno.id, texto: data.texto, atualizado_em: new Date().toISOString() });
+      ok++;
+    } catch { erro++; }
+    toast(`Gerados: ${ok} ✅  Erros: ${erro} ❌`);
+  }
+  document.getElementById('lote-prog-bar').style.width = '100%';
+  document.getElementById('lote-prog-texto').textContent = `Concluído! ${ok} gerado(s), ${erro} com erro.`;
+  document.getElementById('lote-resumo').innerHTML = `<div style="font-size:14px;font-weight:700;margin-bottom:8px;">✅ Geração concluída!</div>
+    <div>Relatórios gerados: <strong>${ok}</strong></div>
+    ${erro ? `<div style="color:var(--nao-adquirido);margin-top:4px;">Erros: <strong>${erro}</strong></div>` : ''}`;
+  document.getElementById('lote-btn-cancelar').textContent = 'Fechar';
+  document.getElementById('lote-btn-cancelar').style.display = '';
+  document.getElementById('lote-btn-prox').style.display = 'none';
+  loteEmAndamento = false;
+  renderRelatorios(); renderAlunos(); renderDashboard();
 }
 
 // ===================== DASHBOARD =====================
