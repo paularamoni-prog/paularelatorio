@@ -481,6 +481,28 @@
   .exp-card-title { font-weight: 700; font-size: 13px; color: var(--verde-escuro); margin-bottom: 4px; }
   .exp-card-desc { font-size: 11px; color: var(--texto-suave); line-height: 1.4; }
 
+  /* BOTÃO DE VOZ */
+  .voice-btn {
+    position: absolute; right: 8px; bottom: 8px;
+    background: none; border: none; cursor: pointer;
+    width: 30px; height: 30px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--texto-suave); font-size: 16px;
+    transition: all .2s; padding: 0;
+    z-index: 2;
+  }
+  .voice-btn:hover { background: var(--verde-menta); color: var(--verde); }
+  .voice-btn.gravando {
+    background: #ffe0e0; color: #c1121f;
+    animation: pulse-mic 1s infinite;
+  }
+  @keyframes pulse-mic {
+    0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(193,18,31,.4); }
+    50% { transform: scale(1.12); box-shadow: 0 0 0 6px rgba(193,18,31,0); }
+  }
+  .voice-wrap { position: relative; }
+  .voice-wrap textarea { padding-right: 38px; }
+
   @media print {
     .sidebar, .topbar, .modal-overlay, .toast { display: none !important; }
     .main { margin-left: 0; }
@@ -2803,6 +2825,76 @@ function expCopiarTSV() {
 
 
 
+// ===================== DIGITAÇÃO POR VOZ =====================
+(function() {
+  var SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) return; // navegador não suporta
+  var _rec = null;
+  var _activeBtn = null;
+
+  window.voiceInput = function(btn, taId) {
+    var ta = document.getElementById(taId);
+    if (!ta) return;
+
+    // Se já está gravando nesse campo, para
+    if (_activeBtn === btn && _rec) {
+      _rec.stop();
+      return;
+    }
+
+    // Para qualquer gravação anterior
+    if (_rec) { try { _rec.stop(); } catch(e){} }
+    if (_activeBtn) { _activeBtn.classList.remove('gravando'); _activeBtn.title = 'Falar'; }
+
+    _rec = new SpeechRecognition();
+    _rec.lang = 'pt-BR';
+    _rec.continuous = true;
+    _rec.interimResults = false;
+
+    _activeBtn = btn;
+    btn.classList.add('gravando');
+    btn.title = 'Parar gravação';
+
+    _rec.onresult = function(e) {
+      var texto = '';
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) texto += e.results[i][0].transcript;
+      }
+      if (texto) {
+        var cursor = ta.selectionStart;
+        var atual = ta.value;
+        // Adiciona espaço se já tem conteúdo
+        var sep = (atual && cursor > 0 && atual[cursor-1] !== ' ' && atual[cursor-1] !== '\n') ? ' ' : '';
+        ta.value = atual.slice(0, cursor) + sep + texto + atual.slice(cursor);
+        ta.selectionStart = ta.selectionEnd = cursor + sep.length + texto.length;
+        ta.dispatchEvent(new Event('input'));
+      }
+    };
+
+    _rec.onerror = function(e) {
+      btn.classList.remove('gravando');
+      btn.title = 'Falar';
+      _activeBtn = null; _rec = null;
+      if (e.error !== 'aborted') toast('⚠️ Microfone: ' + e.error);
+    };
+
+    _rec.onend = function() {
+      btn.classList.remove('gravando');
+      btn.title = 'Falar';
+      _activeBtn = null; _rec = null;
+    };
+
+    try { _rec.start(); } catch(e) { toast('⚠️ Não foi possível acessar o microfone.'); }
+  };
+
+  // Verifica suporte e esconde botões se não suportar
+  window._voiceSupported = true;
+})();
+if (typeof window._voiceSupported === 'undefined') {
+  // Sem suporte — define stub para não quebrar
+  window.voiceInput = function() { toast('⚠️ Seu navegador não suporta reconhecimento de voz. Use Chrome ou Edge.'); };
+}
+
 // ===================== HABILIDADES BNCC EDUCAÇÃO INFANTIL =====================
 const BNCC_EI_HABILIDADES = [
   // O EU, O OUTRO E O NÓS
@@ -2940,8 +3032,9 @@ function criarHabWidget(uid, selecionados, onChange) {
     var html = '';
     BNCC_GRUPOS.forEach(function(g) {
       var items = BNCC_EI_HABILIDADES.filter(function(h) {
+        var grupoMatch = q && g.label.toLowerCase().indexOf(q) !== -1;
         return h.cod.indexOf(g.prefixo) !== -1 &&
-          (!q || h.cod.toLowerCase().indexOf(q) !== -1 || h.desc.toLowerCase().indexOf(q) !== -1);
+          (!q || grupoMatch || h.cod.toLowerCase().indexOf(q) !== -1 || h.desc.toLowerCase().indexOf(q) !== -1);
       });
       if (!items.length) return;
       html += '<div class="hab-group-label">' + g.label + '</div>';
@@ -3504,8 +3597,9 @@ function renderHabList(uid, filtro) {
   var html = '';
   BNCC_GRUPOS.forEach(function(g) {
     var items = BNCC_EI_HABILIDADES.filter(function(h) {
+      var grupoMatch = q && g.label.toLowerCase().indexOf(q) !== -1;
       return h.cod.indexOf(g.prefixo) !== -1 &&
-        (!q || h.cod.toLowerCase().indexOf(q) !== -1 || h.desc.toLowerCase().indexOf(q) !== -1);
+        (!q || grupoMatch || h.cod.toLowerCase().indexOf(q) !== -1 || h.desc.toLowerCase().indexOf(q) !== -1);
     });
     if (!items.length) return;
     html += '<div class="hab-group-label">' + g.label + '</div>';
@@ -3800,8 +3894,15 @@ function abrirModalSemana(idx) {
     atvTA.id = 'pdia-atv-' + di;
     atvTA.placeholder = 'Descreva as atividades do dia…';
     atvTA.value = dia.atividades || '';
+    var atvWrap = document.createElement('div');
+    atvWrap.className = 'voice-wrap';
+    var atvMic = document.createElement('button');
+    atvMic.type = 'button'; atvMic.className = 'voice-btn'; atvMic.title = 'Falar';
+    atvMic.innerHTML = '🎤';
+    atvMic.setAttribute('onclick', 'voiceInput(this,"pdia-atv-' + di + '")');
+    atvWrap.appendChild(atvTA); atvWrap.appendChild(atvMic);
     atvGroup.appendChild(atvLabel);
-    atvGroup.appendChild(atvTA);
+    atvGroup.appendChild(atvWrap);
     body.appendChild(atvGroup);
 
     // --- Recurso ---
@@ -3814,8 +3915,15 @@ function abrirModalSemana(idx) {
     recTA.id = 'pdia-rec-' + di;
     recTA.placeholder = 'Recursos utilizados…';
     recTA.value = dia.recurso || '';
+    var recWrap = document.createElement('div');
+    recWrap.className = 'voice-wrap';
+    var recMic = document.createElement('button');
+    recMic.type = 'button'; recMic.className = 'voice-btn'; recMic.title = 'Falar';
+    recMic.innerHTML = '🎤';
+    recMic.setAttribute('onclick', 'voiceInput(this,"pdia-rec-' + di + '")');
+    recWrap.appendChild(recTA); recWrap.appendChild(recMic);
     recGroup.appendChild(recLabel);
-    recGroup.appendChild(recTA);
+    recGroup.appendChild(recWrap);
     body.appendChild(recGroup);
 
     // --- Obs ---
@@ -3828,8 +3936,15 @@ function abrirModalSemana(idx) {
     obsTA.id = 'pdia-obs-' + di;
     obsTA.placeholder = 'Observações…';
     obsTA.value = dia.obs || '';
+    var obsWrap = document.createElement('div');
+    obsWrap.className = 'voice-wrap';
+    var obsMic = document.createElement('button');
+    obsMic.type = 'button'; obsMic.className = 'voice-btn'; obsMic.title = 'Falar';
+    obsMic.innerHTML = '🎤';
+    obsMic.setAttribute('onclick', 'voiceInput(this,"pdia-obs-' + di + '")');
+    obsWrap.appendChild(obsTA); obsWrap.appendChild(obsMic);
     obsGroup.appendChild(obsLabel);
-    obsGroup.appendChild(obsTA);
+    obsGroup.appendChild(obsWrap);
     body.appendChild(obsGroup);
 
     card.appendChild(body);
