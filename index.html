@@ -656,7 +656,7 @@
           <input type="text" id="busca-aluno" placeholder="Buscar aluno…" style="padding:9px 14px 9px 36px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;width:220px;" oninput="renderAlunos()">
         </div>
         <div style="margin-left:auto;display:flex;gap:8px;">
-          <button class="btn btn-outline" onclick="imprimirCardsAlunos()">🖨️ Imprimir Cards</button>
+          <button class="btn btn-outline" onclick="abrirModalImpressaoCards()">🖨️ Imprimir Cards</button>
           <button class="btn btn-outline" onclick="goTo('importar')">📥 Importar CSV</button>
           <button class="btn btn-primary" onclick="openModalAluno()">+ Novo Aluno</button>
         </div>
@@ -1054,6 +1054,79 @@
       <button class="btn btn-outline" onclick="closeModal('modal-exportar')">Cancelar</button>
       <button class="btn btn-outline" onclick="expCopiarTSV()" title="Cola direto no Google Sheets com Ctrl+V">📋 Copiar (colar no Sheets)</button>
       <button class="btn btn-primary" onclick="expBaixarCSV()">⬇ Baixar CSV</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPRIMIR CARDS -->
+<div class="modal-overlay" id="modal-print-cards">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-header">
+      <div>
+        <h2>🖨️ Imprimir Cards de Acompanhamento</h2>
+        <div style="font-size:12px;color:var(--texto-suave);margin-top:3px;" id="print-cards-subtitulo">Selecione turma e alunos</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-print-cards')">×</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Filtro de turma -->
+      <div class="form-group" style="margin-bottom:16px;">
+        <label>Turma</label>
+        <select id="print-filtro-turma" onchange="renderPrintAlunosList()">
+          <option value="">Todas as turmas</option>
+        </select>
+      </div>
+
+      <!-- Busca -->
+      <div class="search-bar" style="margin-bottom:16px;">
+        <span class="search-icon">🔍</span>
+        <input type="text" id="print-busca" placeholder="Buscar aluno…" style="padding:9px 14px 9px 36px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;width:100%;" oninput="renderPrintAlunosList()">
+      </div>
+
+      <!-- Ações de seleção -->
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;" id="print-sel-label">Alunos</span>
+        <div style="display:flex;gap:6px;">
+          <button class="btn btn-outline btn-sm" onclick="printSelectAll(true)">Selecionar todos</button>
+          <button class="btn btn-outline btn-sm" onclick="printSelectAll(false)">Limpar seleção</button>
+        </div>
+      </div>
+
+      <!-- Lista de alunos -->
+      <div class="card" style="max-height:300px;overflow-y:auto;">
+        <div id="print-alunos-lista"></div>
+      </div>
+
+      <!-- Opções de impressão -->
+      <div style="margin-top:16px;padding:14px;background:var(--cinza-bg);border-radius:10px;border:1.5px solid var(--cinza-borda);">
+        <div style="font-size:12px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;">Opções do card</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="print-opt-aval" checked style="accent-color:var(--verde);width:15px;height:15px;">
+            📋 Critérios de avaliação
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="print-opt-rel" checked style="accent-color:var(--verde);width:15px;height:15px;">
+            📝 Relatório narrativo
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="print-opt-presenca" checked style="accent-color:var(--verde);width:15px;height:15px;">
+            📅 Grade de presença semanal
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+            <input type="checkbox" id="print-opt-obs" checked style="accent-color:var(--verde);width:15px;height:15px;">
+            🗒️ Bloco de observações livres
+          </label>
+        </div>
+      </div>
+
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-print-cards')">Cancelar</button>
+      <button class="btn btn-primary" id="print-cards-btn" onclick="executarImpressaoCards()">
+        🖨️ <span id="print-cards-btn-label">Imprimir</span>
+      </button>
     </div>
   </div>
 </div>
@@ -1940,7 +2013,8 @@ async function executarLote() {
 
 // ===================== IMPRIMIR CARDS DE ACOMPANHAMENTO =====================
 
-function gerarHTMLCardImpressao(aluno) {
+function gerarHTMLCardImpressao(aluno, opts) {
+  opts = opts || { aval: true, rel: true, presenca: true, obs: true };
   const turma = state.turmas.find(t => t.id === aluno.turmaId);
   const aval = state.avaliacoes[aluno.id] || {};
   const rel = state.relatorios[aluno.id] || '';
@@ -2048,42 +2122,42 @@ function gerarHTMLCardImpressao(aluno) {
       <div style="padding:14px 16px;background:white;">
 
         <!-- Legenda -->
-        <div style="display:flex;gap:16px;margin-bottom:12pt;font-size:8.5pt;color:#5a7a68;">
+        ${opts.aval ? `<div style="display:flex;gap:16px;margin-bottom:12pt;font-size:8.5pt;color:#5a7a68;">
           <span><strong style="color:#2d6a4f;">S</strong> = Satisfatório (70–100%)</span>
           <span><strong style="color:#e9891a;">D</strong> = Em desenvolvimento (50–70%)</span>
           <span><strong style="color:#c1121f;">N</strong> = Não adquirido (&lt;50%)</span>
           <span style="margin-left:auto;color:#aaa;font-style:italic;">Coluna "Anotação" para registros diários</span>
-        </div>
+        </div>` : ''}
 
         <!-- Critérios por área -->
-        ${areasBlocos}
+        ${opts.aval ? areasBlocos : ''}
 
         <!-- Figura humana -->
-        ${aval.figuraHumana ? `<div style="margin-bottom:12pt;padding:8px 12px;background:#f8f8f8;border-radius:8px;border:1px solid #e0e0e0;font-size:9.5pt;">
+        ${opts.aval && aval.figuraHumana ? `<div style="margin-bottom:12pt;padding:8px 12px;background:#f8f8f8;border-radius:8px;border:1px solid #e0e0e0;font-size:9.5pt;">
           <strong style="color:#1b4332;">🎨 Figura Humana:</strong> ${figuraMap[aval.figuraHumana] || aval.figuraHumana}
         </div>` : ''}
 
         <!-- Relatório narrativo -->
-        ${rel ? `<div style="margin-bottom:14pt;">
+        ${opts.rel && rel ? `<div style="margin-bottom:14pt;">
           <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">📝 Relatório Narrativo</div>
           <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:10px 12px;font-size:10pt;line-height:1.7;font-family:Georgia,serif;color:#1c2e26;background:#fafff9;">${rel}</div>
         </div>` : ''}
 
         <!-- Presença semanal -->
-        <div style="margin-bottom:14pt;">
+        ${opts.presenca ? `<div style="margin-bottom:14pt;">
           <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">📅 Acompanhamento de Presença / Participação</div>
           <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:10px 12px;">
             ${tabelaSemanas}
           </div>
-        </div>
+        </div>` : ''}
 
         <!-- Anotações livres -->
-        <div>
+        ${opts.obs ? `<div>
           <div style="background:#1b4332;color:white;padding:5px 10px;border-radius:6px 6px 0 0;font-weight:700;font-size:10pt;">🗒️ Observações e Anotações do Dia a Dia</div>
           <div style="border:1px solid #ddd;border-top:none;border-radius:0 0 6px 6px;padding:12px 12px 6px;">
             ${linhasAnotacao}
           </div>
-        </div>
+        </div>` : ''}
 
       </div><!-- fim corpo -->
     </div><!-- fim card -->
@@ -2093,27 +2167,112 @@ function gerarHTMLCardImpressao(aluno) {
 function imprimirCardAluno(alunoId) {
   const aluno = state.alunos.find(a => a.id === alunoId);
   if (!aluno) return;
-  abrirJanelaImpressao([aluno]);
+  abrirJanelaImpressao([aluno], { aval: true, rel: true, presenca: true, obs: true });
 }
 
-function imprimirCardsAlunos() {
-  const filtro = document.getElementById('filtro-turma').value;
-  const busca = (document.getElementById('busca-aluno').value || '').toLowerCase();
-  const lista = state.alunos
+function imprimirCardsAlunos() { abrirModalImpressaoCards(); }
+
+let printCardsSel = [];
+
+function abrirModalImpressaoCards() {
+  // popular filtro turma
+  const sel = document.getElementById('print-filtro-turma');
+  sel.innerHTML = '<option value="">Todas as turmas</option>' +
+    state.turmas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
+  // herdar filtro ativo da página Alunos
+  const filtroAtual = document.getElementById('filtro-turma').value;
+  if (filtroAtual) sel.value = filtroAtual;
+  document.getElementById('print-busca').value = '';
+  printCardsSel = [];
+  renderPrintAlunosList();
+  openModal('modal-print-cards');
+}
+
+function renderPrintAlunosList() {
+  const filtro  = document.getElementById('print-filtro-turma').value;
+  const busca   = (document.getElementById('print-busca').value || '').toLowerCase();
+  const alunos  = state.alunos
     .filter(a => (!filtro || a.turmaId === filtro) && (!busca || a.nome.toLowerCase().includes(busca)))
     .sort((a, b) => a.nome.localeCompare(b.nome));
-  if (!lista.length) { toast('Nenhum aluno para imprimir.'); return; }
-  const turma = filtro ? state.turmas.find(t => t.id === filtro) : null;
-  const label = turma ? turma.nome : 'todos os alunos';
-  if (lista.length > 1 && !confirm(`Imprimir cards de ${lista.length} aluno(s) de ${label}?`)) return;
-  abrirJanelaImpressao(lista);
+
+  // inicializar seleção se ainda vazia
+  if (!printCardsSel.length) printCardsSel = alunos.map(a => a.id);
+
+  const lista = document.getElementById('print-alunos-lista');
+  if (!alunos.length) {
+    lista.innerHTML = '<div class="acc-empty">Nenhum aluno encontrado.</div>';
+    atualizarPrintLabel(0);
+    return;
+  }
+
+  lista.innerHTML = alunos.map(a => {
+    const turma  = state.turmas.find(t => t.id === a.turmaId);
+    const temRel = !!state.relatorios[a.id];
+    const sel    = printCardsSel.includes(a.id);
+    return `<label class="lote-aluno-item">
+      <input type="checkbox" id="pchk-${a.id}" ${sel ? 'checked' : ''} onchange="printToggleAluno('${a.id}', this.checked)">
+      <label for="pchk-${a.id}" style="flex:1;cursor:pointer;">
+        <strong>${a.nome}</strong>
+        ${turma ? `<span style="color:var(--texto-suave);font-size:11px;margin-left:6px;">${turma.nome}</span>` : ''}
+        ${a.especial ? '<span class="badge badge-especial" style="font-size:9px;margin-left:4px;">⭐ Esp.</span>' : ''}
+      </label>
+      ${temRel ? '<span class="badge badge-sat" style="font-size:10px;">✅ rel.</span>' : ''}
+    </label>`;
+  }).join('');
+
+  atualizarPrintLabel(printCardsSel.filter(id => alunos.find(a => a.id === id)).length);
 }
 
-function abrirJanelaImpressao(lista) {
+function printToggleAluno(id, checked) {
+  if (checked && !printCardsSel.includes(id)) printCardsSel.push(id);
+  if (!checked) printCardsSel = printCardsSel.filter(x => x !== id);
+  // recount visíveis
+  const filtro = document.getElementById('print-filtro-turma').value;
+  const busca  = (document.getElementById('print-busca').value || '').toLowerCase();
+  const visiveis = state.alunos.filter(a => (!filtro || a.turmaId === filtro) && (!busca || a.nome.toLowerCase().includes(busca)));
+  atualizarPrintLabel(printCardsSel.filter(id => visiveis.find(a => a.id === id)).length);
+}
+
+function printSelectAll(val) {
+  const filtro = document.getElementById('print-filtro-turma').value;
+  const busca  = (document.getElementById('print-busca').value || '').toLowerCase();
+  const visiveis = state.alunos.filter(a => (!filtro || a.turmaId === filtro) && (!busca || a.nome.toLowerCase().includes(busca)));
+  visiveis.forEach(a => {
+    if (val && !printCardsSel.includes(a.id)) printCardsSel.push(a.id);
+    if (!val) printCardsSel = printCardsSel.filter(id => id !== a.id);
+    const chk = document.getElementById('pchk-' + a.id);
+    if (chk) chk.checked = val;
+  });
+  atualizarPrintLabel(val ? visiveis.length : 0);
+}
+
+function atualizarPrintLabel(n) {
+  document.getElementById('print-sel-label').textContent = `${n} aluno(s) selecionado(s)`;
+  document.getElementById('print-cards-btn-label').textContent = `Imprimir ${n} card${n !== 1 ? 's' : ''}`;
+  document.getElementById('print-cards-btn').disabled = n === 0;
+}
+
+function executarImpressaoCards() {
+  if (!printCardsSel.length) { toast('Selecione ao menos um aluno.'); return; }
+  const lista = state.alunos
+    .filter(a => printCardsSel.includes(a.id))
+    .sort((a, b) => a.nome.localeCompare(b.nome));
+  const opts = {
+    aval:     document.getElementById('print-opt-aval').checked,
+    rel:      document.getElementById('print-opt-rel').checked,
+    presenca: document.getElementById('print-opt-presenca').checked,
+    obs:      document.getElementById('print-opt-obs').checked,
+  };
+  closeModal('modal-print-cards');
+  abrirJanelaImpressao(lista, opts);
+}
+
+function abrirJanelaImpressao(lista, opts) {
+  opts = opts || { aval: true, rel: true, presenca: true, obs: true };
   const win = window.open('', '_blank');
   const cards = lista.map((a, i) => `
     ${i > 0 ? '<div style="page-break-before:always;"></div>' : ''}
-    ${gerarHTMLCardImpressao(a)}
+    ${gerarHTMLCardImpressao(a, opts)}
   `).join('');
 
   win.document.write(`<!DOCTYPE html>
