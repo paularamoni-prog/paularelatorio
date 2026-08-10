@@ -4427,11 +4427,27 @@ function renderMesesSemestralList() {
 
     const header = document.createElement('div');
     header.className = 'mes-card-header';
-    header.innerHTML = '<h4>🗓️ ' + MESES_NOME[mesObj.mes] + '</h4>';
+    header.style.cursor = 'pointer';
+    header.innerHTML =
+      '<h4><span id="mes-arrow-' + idx + '" style="display:inline-block;width:14px;">▸</span> 🗓️ ' + MESES_NOME[mesObj.mes] + '</h4>' +
+      '<span id="mes-hint-' + idx + '" style="font-size:11px;color:rgba(255,255,255,.55);">clique para abrir</span>';
+    header.onclick = (function(i){
+      return function() {
+        const body = document.getElementById('mes-body-' + i);
+        const arrow = document.getElementById('mes-arrow-' + i);
+        const hint = document.getElementById('mes-hint-' + i);
+        const isOpen = body.style.display !== 'none';
+        body.style.display = isOpen ? 'none' : 'grid';
+        arrow.textContent = isOpen ? '▸' : '▾';
+        hint.textContent = isOpen ? 'clique para abrir' : 'clique para fechar';
+      };
+    })(idx);
     card.appendChild(header);
 
     const body = document.createElement('div');
     body.className = 'mes-card-body';
+    body.id = 'mes-body-' + idx;
+    body.style.display = 'none';
 
     const campos = [
       { key: 'tematica',  label: 'Temática' },
