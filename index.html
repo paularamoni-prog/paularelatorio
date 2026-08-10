@@ -4296,6 +4296,90 @@ function mesesDoSemestre(semestre) {
   return semestre == 1 ? [2,3,4,5,6] : [8,9,10,11,12];
 }
 
+// ---- Campos de Experiência (BNCC – Educação Infantil) ----
+const CAMPOS_EXPERIENCIA_BNCC = [
+  { id: 'eu-outro-nos',   label: 'O eu, o outro e o nós' },
+  { id: 'corpo-gestos',   label: 'Corpo, gestos e movimentos' },
+  { id: 'tracos-sons',    label: 'Traços, sons, cores e formas' },
+  { id: 'escuta-fala',    label: 'Escuta, fala, pensamento e imaginação' },
+  { id: 'espacos-tempos', label: 'Espaços, tempos, quantidades, relações e transformações' },
+];
+const campoState = {}; // { uid: Set(labels selecionados) }
+
+function renderCampoList(uid) {
+  const listEl = document.getElementById('campo-list-' + uid);
+  if (!listEl) return;
+  const sel = campoState[uid] || new Set();
+  listEl.innerHTML = CAMPOS_EXPERIENCIA_BNCC.map(function(c) {
+    const chk = sel.has(c.label);
+    return '<label class="hab-option' + (chk ? ' selected' : '') + '" onclick="event.stopPropagation()">' +
+      '<input type="checkbox"' + (chk ? ' checked' : '') + ' data-uid="' + uid + '" data-label="' + c.label.replace(/"/g,'&quot;') + '">' +
+      '<span class="hab-option-desc">' + c.label + '</span>' +
+      '</label>';
+  }).join('');
+  listEl.querySelectorAll('input[type=checkbox]').forEach(function(chk) {
+    chk.addEventListener('change', function() {
+      const label = this.getAttribute('data-label');
+      const u = this.getAttribute('data-uid');
+      if (!campoState[u]) campoState[u] = new Set();
+      if (this.checked) campoState[u].add(label);
+      else campoState[u].delete(label);
+      this.closest('.hab-option').classList.toggle('selected', this.checked);
+      renderCampoTrigger(u);
+      const cb = campoState['__callback_' + u];
+      if (typeof cb === 'function') cb();
+    });
+  });
+}
+
+function renderCampoTrigger(uid) {
+  const trigger = document.getElementById('campo-trigger-' + uid);
+  if (!trigger) return;
+  const sel = Array.from(campoState[uid] || []);
+  if (!sel.length) {
+    trigger.innerHTML = '<span class="hab-placeholder">Selecionar campo(s)…</span>';
+  } else {
+    trigger.innerHTML = sel.map(function(label) {
+      return '<span class="hab-tag" style="background:#d8f3dc;color:#1b4332;">' + label + '<span class="hab-tag-remove" data-uid="' + uid + '" data-label="' + label.replace(/"/g,'&quot;') + '">×</span></span>';
+    }).join('');
+    trigger.querySelectorAll('.hab-tag-remove').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const u = this.getAttribute('data-uid');
+        const label = this.getAttribute('data-label');
+        if (campoState[u]) campoState[u].delete(label);
+        renderCampoTrigger(u);
+        renderCampoList(u);
+        const cb = campoState['__callback_' + u];
+        if (typeof cb === 'function') cb();
+      });
+    });
+  }
+}
+
+function toggleCampoDropdown(uid) {
+  const dropdown = document.getElementById('campo-dropdown-' + uid);
+  const trigger  = document.getElementById('campo-trigger-'  + uid);
+  if (!dropdown) return;
+  const isOpen = dropdown.classList.contains('open');
+  document.querySelectorAll('.hab-dropdown.open').forEach(function(el){ el.classList.remove('open'); });
+  document.querySelectorAll('.hab-trigger.open').forEach(function(el){ el.classList.remove('open'); });
+  if (!isOpen) {
+    dropdown.classList.add('open');
+    if (trigger) trigger.classList.add('open');
+    renderCampoList(uid);
+  }
+}
+
+function initCampoDropdownInline(uid, selecionados, mesIdx) {
+  campoState[uid] = new Set(selecionados);
+  renderCampoList(uid);
+  renderCampoTrigger(uid);
+  campoState['__callback_' + uid] = function() {
+    salvarMesInline(mesIdx, 'campos', Array.from(campoState[uid] || []).join('\n'));
+  };
+}
+
 function initPlanejamentoSemestral() {
   const key = planSemKey();
   const semestre = parseInt(document.getElementById('psem-semestre').value);
@@ -4364,6 +4448,40 @@ function renderMesesSemestralList() {
       const lbl = document.createElement('label');
       lbl.textContent = campo.label;
       wrap.appendChild(lbl);
+
+      if (campo.key === 'campos') {
+        // Dropdown de múltipla seleção com os Campos de Experiência oficiais da BNCC
+        const uid = 'psemcampo-' + idx;
+        const habWrapper = document.createElement('div');
+        habWrapper.className = 'hab-wrapper';
+
+        const habTrigger = document.createElement('button');
+        habTrigger.type = 'button';
+        habTrigger.className = 'hab-trigger';
+        habTrigger.id = 'campo-trigger-' + uid;
+        habTrigger.innerHTML = '<span class="hab-placeholder">Selecionar campo(s)…</span>';
+        habTrigger.onclick = (function(u){ return function(){ toggleCampoDropdown(u); }; })(uid);
+        habWrapper.appendChild(habTrigger);
+
+        const habDropdown = document.createElement('div');
+        habDropdown.className = 'hab-dropdown';
+        habDropdown.id = 'campo-dropdown-' + uid;
+        habDropdown.style.width = '320px';
+
+        const hl = document.createElement('div');
+        hl.className = 'hab-list';
+        hl.id = 'campo-list-' + uid;
+        habDropdown.appendChild(hl);
+        habWrapper.appendChild(habDropdown);
+
+        wrap.appendChild(habWrapper);
+        body.appendChild(wrap);
+
+        const selecionados = (mesObj.campos || '').split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
+        initCampoDropdownInline(uid, selecionados, idx);
+        return;
+      }
+
       const ta = document.createElement('textarea');
       ta.value = mesObj[campo.key] || '';
       ta.placeholder = campo.label + '…';
