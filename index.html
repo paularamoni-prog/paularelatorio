@@ -1028,7 +1028,10 @@
           </div>
         </div>
         <div>
-          <label>Introdução / Justificativa Pedagógica</label>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;">
+            <label style="margin-bottom:0;">Introdução / Justificativa Pedagógica</label>
+            <button type="button" class="btn btn-outline btn-sm" onclick="restaurarIntroducaoPadrao()" title="Restaurar o texto institucional padrão (LDB, BNCC, Cadernos do Currículo, PPP)">↺ Restaurar texto padrão</button>
+          </div>
           <textarea id="psem-introducao" placeholder="Texto introdutório sobre a base pedagógica e importância do trabalho…" oninput="salvarCabecalhoSemestral()"></textarea>
         </div>
       </div>
@@ -3076,9 +3079,10 @@ const habCallbacks = {};
  * selecionados: array de códigos já marcados
  * onChange: function(codigosArray) chamada quando a seleção muda
  */
-function criarHabWidget(uid, selecionados, onChange) {
+function criarHabWidget(uid, selecionados, onChange, placeholderTexto) {
   habState[uid] = new Set(selecionados || []);
   habCallbacks[uid] = onChange || function(){};
+  const placeholder = placeholderTexto || 'Selecionar habilidade…';
 
   var wrapper = document.createElement('div');
   wrapper.className = 'hab-wrapper';
@@ -3088,7 +3092,7 @@ function criarHabWidget(uid, selecionados, onChange) {
   trigger.type = 'button';
   trigger.className = 'hab-trigger';
   trigger.style.width = '100%';
-  trigger.innerHTML = '<span class="hab-placeholder">Selecionar habilidade…</span>';
+  trigger.innerHTML = '<span class="hab-placeholder">' + placeholder + '</span>';
   trigger.addEventListener('click', function(e) {
     e.stopPropagation();
     var isOpen = dropdown.classList.contains('open');
@@ -3201,7 +3205,7 @@ function criarHabWidget(uid, selecionados, onChange) {
   function atualizarTrigger() {
     var sel = Array.from(habState[uid]);
     if (!sel.length) {
-      trigger.innerHTML = '<span class="hab-placeholder">Selecionar habilidade…</span>';
+      trigger.innerHTML = '<span class="hab-placeholder">' + placeholder + '</span>';
     } else {
       trigger.innerHTML = sel.map(function(cod) {
         return '<span class="hab-tag">' + cod +
@@ -3237,6 +3241,20 @@ document.addEventListener('click', function(e) {
     document.querySelectorAll('.hab-trigger.open').forEach(function(el){ el.classList.remove('open'); });
   }
 });
+
+// Extrai códigos BNCC (ex: EI02CG05) de um texto livre, mantendo apenas ocorrências únicas
+function extrairCodigosBNCC(texto) {
+  const matches = (texto || '').match(/\bEI\d{2}[A-Z]{2}\d{2}\b/g);
+  return matches ? Array.from(new Set(matches)) : [];
+}
+
+// Converte uma lista de códigos BNCC em texto legível "CÓDIGO - descrição", um por linha
+function codigosParaTextoObjetivos(codigos) {
+  return (codigos || []).map(function(cod) {
+    const h = BNCC_EI_HABILIDADES.find(function(x){ return x.cod === cod; });
+    return h ? (cod + ' - ' + h.desc) : cod;
+  }).join('\n');
+}
 
 // ===================== TEMA MULTISELECT =====================
 function toggleTemaDropdown() {
@@ -4415,6 +4433,15 @@ function salvarCabecalhoSemestral() {
   planSemSalvar();
 }
 
+function restaurarIntroducaoPadrao() {
+  const key = planSemKey();
+  if (!planSemestralState[key]) return;
+  document.getElementById('psem-introducao').value = INTRO_PADRAO_SEMESTRAL;
+  planSemestralState[key].introducao = INTRO_PADRAO_SEMESTRAL;
+  planSemSalvar();
+  toast('↺ Texto padrão restaurado. Você ainda pode editá-lo livremente.');
+}
+
 function renderMesesSemestralList() {
   const key = planSemKey();
   const dadosSem = planSemestralState[key] || { meses: [] };
@@ -4462,7 +4489,7 @@ function renderMesesSemestralList() {
       wrap.className = 'mes-campo';
       if (campo.key === 'praticas') wrap.style.gridColumn = '1 / -1';
 
-      if (campo.key === 'praticas') {
+      if (campo.key === 'praticas' || campo.key === 'registro') {
         const lblRow = document.createElement('div');
         lblRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;';
         const lbl = document.createElement('label');
@@ -4471,10 +4498,15 @@ function renderMesesSemestralList() {
         const btnIA = document.createElement('button');
         btnIA.type = 'button';
         btnIA.className = 'btn btn-laranja btn-sm';
-        btnIA.id = 'btn-ia-praticas-' + idx;
+        btnIA.id = 'btn-ia-' + campo.key + '-' + idx;
         btnIA.innerHTML = '✨ Sugerir com IA';
-        btnIA.title = 'Gerar sugestões de práticas e experiências com base na Temática, Campos de Experiência e Objetivos Gerais deste mês';
-        btnIA.onclick = (function(i){ return function(){ gerarSugestaoPraticas(i); }; })(idx);
+        if (campo.key === 'praticas') {
+          btnIA.title = 'Gerar sugestões de práticas e experiências com base na Temática, Campos de Experiência e Objetivos Gerais deste mês';
+          btnIA.onclick = (function(i){ return function(){ gerarSugestaoPraticas(i); }; })(idx);
+        } else {
+          btnIA.title = 'Gerar sugestões de registro com base na Temática, Campos de Experiência, Objetivos Gerais e Práticas deste mês';
+          btnIA.onclick = (function(i){ return function(){ gerarSugestaoRegistro(i); }; })(idx);
+        }
         lblRow.appendChild(btnIA);
         wrap.appendChild(lblRow);
       } else {
@@ -4513,6 +4545,21 @@ function renderMesesSemestralList() {
 
         const selecionados = (mesObj.campos || '').split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
         initCampoDropdownInline(uid, selecionados, idx);
+        return;
+      }
+
+      if (campo.key === 'objetivos') {
+        // Dropdown de múltipla seleção com os Objetivos Gerais oficiais da BNCC
+        // (Educação Infantil, faixa "crianças bem pequenas" – 1a a 3a11m, que corresponde às turmas de 3 anos)
+        const uid = 'psemobj-' + idx;
+        const codigosIniciais = extrairCodigosBNCC(mesObj.objetivos);
+        const objWidget = criarHabWidget(uid, codigosIniciais, function(codigos) {
+          const texto = codigosParaTextoObjetivos(codigos);
+          mesObj.objetivos = texto;
+          salvarMesInline(idx, 'objetivos', texto);
+        }, 'Selecionar objetivo(s) BNCC…');
+        wrap.appendChild(objWidget);
+        body.appendChild(wrap);
         return;
       }
 
@@ -4588,6 +4635,66 @@ async function gerarSugestaoPraticas(idx) {
     toast('✅ Sugestões geradas! Você pode editar o texto livremente.');
   } catch (e) {
     console.error('Erro ao gerar sugestão de práticas:', e);
+    toast('❌ Erro ao gerar sugestão. Tente novamente.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '✨ Sugerir com IA'; }
+    if (ta) { ta.disabled = false; ta.placeholder = placeholderOriginal; }
+  }
+}
+
+// ===================== SUGESTÃO DE REGISTRO (IA) =====================
+async function gerarSugestaoRegistro(idx) {
+  const key = planSemKey();
+  const dadosSem = planSemestralState[key];
+  if (!dadosSem || !dadosSem.meses[idx]) return;
+  const mesObj = dadosSem.meses[idx];
+
+  const tematica = (mesObj.tematica || '').trim();
+  const camposExp = (mesObj.campos || '').trim();
+  const objetivos = (mesObj.objetivos || '').trim();
+  const praticas = (mesObj.praticas || '').trim();
+
+  if (!tematica && !camposExp && !praticas) {
+    toast('⚠️ Preencha ao menos a Temática, os Campos de Experiência ou as Práticas antes de gerar.');
+    return;
+  }
+
+  const turma = (dadosSem.turma || '').trim();
+  const btn = document.getElementById('btn-ia-registro-' + idx);
+  const ta = document.getElementById('mes-ta-registro-' + idx);
+  const placeholderOriginal = 'Sugestão de Registro…';
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Gerando...'; }
+  if (ta) { ta.disabled = true; ta.placeholder = 'Gerando sugestões com IA…'; }
+
+  const prompt = 'Você é uma pedagoga especialista em Educação Infantil, referenciada pela BNCC (Base Nacional Comum Curricular).\n' +
+    'Gere sugestões de REGISTRO (formas de documentar e acompanhar as vivências) para uma turma de crianças de 3 anos (Educação Infantil), a partir dos dados abaixo.\n\n' +
+    'Temática do mês: ' + (tematica || 'não especificada') + '\n' +
+    'Campos de Experiência (BNCC): ' + (camposExp || 'não especificados') + '\n' +
+    'Objetivos Gerais: ' + (objetivos || 'não especificados') + '\n' +
+    'Práticas e Experiências previstas: ' + (praticas || 'não especificadas') + '\n' +
+    (turma ? 'Turma: ' + turma + '\n' : '') +
+    '\nInstruções:\n' +
+    '- Escreva de 4 a 6 sugestões concretas de como registrar/documentar essas vivências (ex.: fotos, portfólio, desenhos das crianças, relatos, vídeos curtos, painéis, produções coletivas).\n' +
+    '- Cada sugestão deve ser objetiva (1 a 2 linhas), redigida em linguagem clara para uso em planejamento pedagógico.\n' +
+    '- Considere recursos simples e viáveis para uma sala de CEMEI com crianças de 3 anos.\n' +
+    '- Responda apenas com a lista de sugestões, cada uma em uma nova linha iniciando com "- ", sem markdown e sem repetir o cabeçalho ou explicar o que é a BNCC.';
+
+  try {
+    const res = await fetch('/api/gerar-relatorio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.texto) throw new Error(data.error || 'Falha ao gerar sugestão.');
+
+    mesObj.registro = data.texto.trim();
+    if (ta) ta.value = mesObj.registro;
+    salvarMesInline(idx, 'registro', mesObj.registro);
+    toast('✅ Sugestões de registro geradas! Você pode editar o texto livremente.');
+  } catch (e) {
+    console.error('Erro ao gerar sugestão de registro:', e);
     toast('❌ Erro ao gerar sugestão. Tente novamente.');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '✨ Sugerir com IA'; }
