@@ -4731,6 +4731,7 @@ function gerarDocumentoSemestral() {
 <head>
   <meta charset="UTF-8">
   <title>Proposta Pedagógica ${semestre}º Semestre – ${ano}</title>
+  <script src="https://cdn.jsdelivr.net/npm/html-docx-js/dist/html-docx.js"><\/script>
   <style>
     @page { size: A4 landscape; margin: 1.3cm 1.5cm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -4750,9 +4751,12 @@ function gerarDocumentoSemestral() {
   </style>
 </head>
 <body>
-  <div class="no-print" style="position:sticky;top:0;z-index:99;background:#1b4332;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;max-width:290mm;margin:0 auto 16px;border-radius:0 0 10px 10px;box-shadow:0 4px 12px rgba(0,0,0,.2);">
+  <div class="no-print" style="position:sticky;top:0;z-index:99;background:#1b4332;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;max-width:290mm;margin:0 auto 16px;border-radius:0 0 10px 10px;box-shadow:0 4px 12px rgba(0,0,0,.2);">
     <div style="color:white;font-weight:700;font-size:14px;">📚 Proposta Pedagógica – ${semestre}º Semestre ${ano} · ${meses.length} mês(es)</div>
-    <button onclick="window.print()" style="background:#52b788;color:white;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button onclick="window.print()" style="background:#52b788;color:white;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
+      <button id="btn-baixar-word" onclick="baixarWord()" style="background:#2b579a;color:white;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">📄 Baixar Word (.docx)</button>
+    </div>
   </div>
   <div class="pagina">
     <div class="titulo">PROPOSTA PEDAGÓGICA ${semestre}º SEMESTRE</div>
@@ -4772,6 +4776,35 @@ function gerarDocumentoSemestral() {
       ${linhasMeses}
     </table>
   </div>
+  <script>
+    function baixarWord() {
+      const btn = document.getElementById('btn-baixar-word');
+      if (typeof htmlDocx === 'undefined') {
+        alert('A biblioteca de exportação ainda está carregando. Aguarde um instante e tente novamente.');
+        return;
+      }
+      const textoOriginal = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = '⏳ Gerando...';
+      try {
+        const conteudoPagina = document.querySelector('.pagina').outerHTML;
+        const htmlParaWord = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Proposta Pedagógica ${semestre}º Semestre ${ano}</title></head><body>' + conteudoPagina + '</body></html>';
+        const blob = htmlDocx.asBlob(htmlParaWord, { orientation: 'landscape', margins: { top: 700, right: 700, bottom: 700, left: 700 } });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'proposta-pedagogica-${semestre}sem-${ano}.docx';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } catch (e) {
+        console.error('Erro ao gerar Word:', e);
+        alert('Não foi possível gerar o arquivo Word. Tente novamente ou use "Imprimir / Salvar PDF".');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = textoOriginal;
+      }
+    }
+  <\/script>
 </body>
 </html>`);
   win.document.close();
