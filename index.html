@@ -4461,9 +4461,27 @@ function renderMesesSemestralList() {
       const wrap = document.createElement('div');
       wrap.className = 'mes-campo';
       if (campo.key === 'praticas') wrap.style.gridColumn = '1 / -1';
-      const lbl = document.createElement('label');
-      lbl.textContent = campo.label;
-      wrap.appendChild(lbl);
+
+      if (campo.key === 'praticas') {
+        const lblRow = document.createElement('div');
+        lblRow.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;';
+        const lbl = document.createElement('label');
+        lbl.textContent = campo.label;
+        lblRow.appendChild(lbl);
+        const btnIA = document.createElement('button');
+        btnIA.type = 'button';
+        btnIA.className = 'btn btn-laranja btn-sm';
+        btnIA.id = 'btn-ia-praticas-' + idx;
+        btnIA.innerHTML = '✨ Sugerir com IA';
+        btnIA.title = 'Gerar sugestões de práticas e experiências com base na Temática, Campos de Experiência e Objetivos Gerais deste mês';
+        btnIA.onclick = (function(i){ return function(){ gerarSugestaoPraticas(i); }; })(idx);
+        lblRow.appendChild(btnIA);
+        wrap.appendChild(lblRow);
+      } else {
+        const lbl = document.createElement('label');
+        lbl.textContent = campo.label;
+        wrap.appendChild(lbl);
+      }
 
       if (campo.key === 'campos') {
         // Dropdown de múltipla seleção com os Campos de Experiência oficiais da BNCC
@@ -4499,6 +4517,7 @@ function renderMesesSemestralList() {
       }
 
       const ta = document.createElement('textarea');
+      ta.id = 'mes-ta-' + campo.key + '-' + idx;
       ta.value = mesObj[campo.key] || '';
       ta.placeholder = campo.label + '…';
       ta.oninput = (function(i, k){ return function(){ salvarMesInline(i, k, this.value); }; })(idx, campo.key);
@@ -4516,6 +4535,64 @@ function salvarMesInline(idx, campo, valor) {
   if (!planSemestralState[key] || !planSemestralState[key].meses[idx]) return;
   planSemestralState[key].meses[idx][campo] = valor;
   planSemSalvar();
+}
+
+// ===================== SUGESTÃO DE PRÁTICAS E EXPERIÊNCIAS (IA) =====================
+async function gerarSugestaoPraticas(idx) {
+  const key = planSemKey();
+  const dadosSem = planSemestralState[key];
+  if (!dadosSem || !dadosSem.meses[idx]) return;
+  const mesObj = dadosSem.meses[idx];
+
+  const tematica = (mesObj.tematica || '').trim();
+  const camposExp = (mesObj.campos || '').trim();
+  const objetivos = (mesObj.objetivos || '').trim();
+
+  if (!tematica && !camposExp) {
+    toast('⚠️ Preencha ao menos a Temática ou os Campos de Experiência antes de gerar.');
+    return;
+  }
+
+  const turma = (dadosSem.turma || '').trim();
+  const btn = document.getElementById('btn-ia-praticas-' + idx);
+  const ta = document.getElementById('mes-ta-praticas-' + idx);
+  const placeholderOriginal = 'Sugestão de Práticas e Experiências…';
+
+  if (btn) { btn.disabled = true; btn.innerHTML = '⏳ Gerando...'; }
+  if (ta) { ta.disabled = true; ta.placeholder = 'Gerando sugestões com IA…'; }
+
+  const prompt = 'Você é uma pedagoga especialista em Educação Infantil, referenciada pela BNCC (Base Nacional Comum Curricular).\n' +
+    'Gere sugestões de PRÁTICAS E EXPERIÊNCIAS pedagógicas para uma turma de crianças de 3 anos (Educação Infantil), a partir dos dados abaixo.\n\n' +
+    'Temática do mês: ' + (tematica || 'não especificada') + '\n' +
+    'Campos de Experiência (BNCC): ' + (camposExp || 'não especificados') + '\n' +
+    'Objetivos Gerais: ' + (objetivos || 'não especificados') + '\n' +
+    (turma ? 'Turma: ' + turma + '\n' : '') +
+    '\nInstruções:\n' +
+    '- Escreva de 4 a 6 sugestões de práticas/experiências concretas, lúdicas e adequadas à faixa etária de 3 anos.\n' +
+    '- Cada sugestão deve ser objetiva (1 a 2 linhas), redigida em linguagem clara para uso em planejamento pedagógico.\n' +
+    '- Considere materiais simples e viáveis para uma sala de CEMEI.\n' +
+    '- Responda apenas com a lista de práticas, cada uma em uma nova linha iniciando com "- ", sem markdown e sem repetir o cabeçalho ou explicar o que é a BNCC.';
+
+  try {
+    const res = await fetch('/api/gerar-relatorio', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+    const data = await res.json();
+    if (!res.ok || !data.texto) throw new Error(data.error || 'Falha ao gerar sugestão.');
+
+    mesObj.praticas = data.texto.trim();
+    if (ta) ta.value = mesObj.praticas;
+    salvarMesInline(idx, 'praticas', mesObj.praticas);
+    toast('✅ Sugestões geradas! Você pode editar o texto livremente.');
+  } catch (e) {
+    console.error('Erro ao gerar sugestão de práticas:', e);
+    toast('❌ Erro ao gerar sugestão. Tente novamente.');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '✨ Sugerir com IA'; }
+    if (ta) { ta.disabled = false; ta.placeholder = placeholderOriginal; }
+  }
 }
 
 // ===================== GERAR DOCUMENTO DO PLANEJAMENTO SEMESTRAL =====================
