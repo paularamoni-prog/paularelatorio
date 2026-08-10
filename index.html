@@ -653,6 +653,40 @@
   .plan-cod-input { width: 100%; border: 1.5px solid var(--cinza-borda); border-radius: 6px; padding: 7px 10px; font-size: 11px; font-family: monospace; resize: vertical; min-height: 40px; background: var(--cinza-bg); }
   .plan-cod-input:focus { outline: none; border-color: var(--verde-claro); background: white; }
 
+  /* PLANEJAMENTO SEMESTRAL */
+  .sem-cabecalho {
+    background: white; border-radius: var(--radius); box-shadow: var(--shadow);
+    border: 1px solid var(--cinza-borda); padding: 18px 20px; margin-bottom: 18px;
+  }
+  .sem-cabecalho .campo-linha { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 12px; }
+  .sem-cabecalho label { display:block; font-size:11px; font-weight:700; color:var(--texto-suave); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+  .sem-cabecalho input[type=text], .sem-cabecalho textarea {
+    width:100%; border:1.5px solid var(--cinza-borda); border-radius:8px; padding:9px 12px;
+    font-size:13px; font-family:'DM Sans',sans-serif; background: var(--cinza-bg);
+  }
+  .sem-cabecalho textarea { min-height: 80px; resize: vertical; line-height:1.5; }
+  .sem-cabecalho input:focus, .sem-cabecalho textarea:focus { outline:none; border-color: var(--verde-claro); background:white; }
+  .mes-card {
+    background: white; border-radius: var(--radius); box-shadow: var(--shadow);
+    border: 1px solid var(--cinza-borda); margin-bottom: 16px; overflow: hidden;
+  }
+  .mes-card-header {
+    background: var(--verde-escuro); color: white; padding: 12px 20px;
+    display:flex; align-items:center; justify-content:space-between;
+  }
+  .mes-card-header h4 { font-family:"Lora",serif; font-size:15px; }
+  .mes-card-body { padding: 16px 20px; display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .mes-campo label { display:block; font-size:10.5px; font-weight:700; color:var(--texto-suave); text-transform:uppercase; letter-spacing:.5px; margin-bottom:5px; }
+  .mes-campo textarea {
+    width:100%; min-height:70px; border:1.5px solid var(--cinza-borda); border-radius:8px;
+    padding:9px 12px; font-size:12.5px; font-family:'DM Sans',sans-serif; resize:vertical;
+    background: var(--cinza-bg); line-height:1.5;
+  }
+  .mes-campo textarea:focus { outline:none; border-color: var(--verde-claro); background:white; }
+  @media (max-width: 760px) {
+    .sem-cabecalho .campo-linha, .mes-card-body { grid-template-columns: 1fr; }
+  }
+
 </style>
 </head>
 <body>
@@ -692,6 +726,7 @@
     <div class="nav-item" onclick="goTo('turmas')"><span class="icon">🏫</span> Turmas</div>
     <div class="nav-item" onclick="goTo('planejamento')"><span class="icon">📋</span> Planejamento</div>
     <div class="nav-item" onclick="goTo('dashboard-semanas')"><span class="icon">🗓️</span> Dashboard Semanas</div>
+    <div class="nav-item" onclick="goTo('planejamento-semestral')"><span class="icon">📚</span> Planejamento Semestral</div>
   </nav>
   <div class="sidebar-footer">
     <div class="semester-badge">1º Semestre 2026</div>
@@ -961,6 +996,45 @@
       <div id="ds-cards-container">
         <div class="empty-state"><div class="icon">🗓️</div><p>Selecione um mês e ao menos uma semana para visualizar.</p></div>
       </div>
+    </div>
+
+    <!-- PLANEJAMENTO SEMESTRAL -->
+    <div class="page" id="page-planejamento-semestral">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:10px;">
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <select id="psem-semestre" style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;" onchange="initPlanejamentoSemestral()">
+            <option value="1">1º Semestre (Fev–Jun)</option>
+            <option value="2">2º Semestre (Ago–Dez)</option>
+          </select>
+          <select id="psem-ano" style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;" onchange="initPlanejamentoSemestral()">
+            <option value="2026" selected>2026</option><option value="2027">2027</option>
+          </select>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="gerarDocumentoSemestral()">🖨️ Gerar Documento</button>
+        </div>
+      </div>
+
+      <!-- Cabeçalho: turma, professora, introdução -->
+      <div class="sem-cabecalho">
+        <div class="campo-linha">
+          <div>
+            <label>Turma</label>
+            <input type="text" id="psem-turma" placeholder="Ex.: Berçário II" oninput="salvarCabecalhoSemestral()">
+          </div>
+          <div>
+            <label>Professora</label>
+            <input type="text" id="psem-professora" placeholder="Nome da professora" oninput="salvarCabecalhoSemestral()">
+          </div>
+        </div>
+        <div>
+          <label>Introdução / Justificativa Pedagógica</label>
+          <textarea id="psem-introducao" placeholder="Texto introdutório sobre a base pedagógica e importância do trabalho…" oninput="salvarCabecalhoSemestral()"></textarea>
+        </div>
+      </div>
+
+      <!-- Lista de meses do semestre -->
+      <div id="psem-meses-lista"></div>
     </div>
 
   </div><!-- /content -->
@@ -1443,16 +1517,39 @@ async function verificarECriarTabelas() {
   } catch(e) {
     console.warn('Erro ao verificar tabela planejamentos:', e);
   }
+  try {
+    const { error } = await db.from('planejamentos_semestrais').select('id').limit(1);
+    if (error && (error.code === '42P01' || error.message?.includes('does not exist'))) {
+      console.warn('Tabela planejamentos_semestrais não encontrada. SQL sugerido:\n' +
+        "create table planejamentos_semestrais (\n" +
+        "  id uuid primary key default gen_random_uuid(),\n" +
+        "  user_id uuid not null,\n" +
+        "  ano int not null,\n" +
+        "  semestre int not null,\n" +
+        "  mes int not null,\n" +
+        "  turma text,\n" +
+        "  professora text,\n" +
+        "  introducao text,\n" +
+        "  dados jsonb,\n" +
+        "  atualizado_em timestamptz default now(),\n" +
+        "  unique (user_id, ano, semestre, mes)\n" +
+        ");");
+      toast('⚠️ Tabela "planejamentos_semestrais" não encontrada no Supabase. Veja o console.');
+    }
+  } catch(e) {
+    console.warn('Erro ao verificar tabela planejamentos_semestrais:', e);
+  }
 }
 
 async function loadState() {
   await verificarECriarTabelas();
-  const [{ data: turmas }, { data: alunos }, { data: avals }, { data: rels }, { data: plans, error: planErr }] = await Promise.all([
+  const [{ data: turmas }, { data: alunos }, { data: avals }, { data: rels }, { data: plans, error: planErr }, { data: plansSem, error: planSemErr }] = await Promise.all([
     db.from('turmas').select('*'),
     db.from('alunos').select('*'),
     db.from('avaliacoes').select('*'),
     db.from('relatorios').select('*'),
-    db.from('planejamentos').select('*')
+    db.from('planejamentos').select('*'),
+    db.from('planejamentos_semestrais').select('*')
   ]);
   state.turmas  = turmas  || [];
   state.alunos  = (alunos || []).map(a => ({ ...a, turmaId: a.turma_id }));
@@ -1482,6 +1579,28 @@ async function loadState() {
     // Fallback: localStorage caso tabela não exista ou retorne erro
     planCarregar();
     if (planErr) console.warn('Erro ao carregar planejamentos do Supabase:', planErr.message);
+  }
+  // Carrega planejamentos semestrais — estrutura real: {ano, semestre, mes, turma, professora, introducao, dados (jsonb)}
+  planSemestralState = {};
+  if (!planSemErr && plansSem) {
+    plansSem.forEach(p => {
+      try {
+        const chave = `${p.ano}-${p.semestre}`;
+        if (!planSemestralState[chave]) planSemestralState[chave] = { turma: '', professora: '', introducao: '', meses: [] };
+        if (p.turma) planSemestralState[chave].turma = p.turma;
+        if (p.professora) planSemestralState[chave].professora = p.professora;
+        if (p.introducao) planSemestralState[chave].introducao = p.introducao;
+        if (p.dados) {
+          const mesDados = (typeof p.dados === 'string') ? JSON.parse(p.dados) : p.dados;
+          const idxExistente = planSemestralState[chave].meses.findIndex(m => m.mes === p.mes);
+          if (idxExistente >= 0) planSemestralState[chave].meses[idxExistente] = mesDados;
+          else planSemestralState[chave].meses.push(mesDados);
+        }
+      } catch(e) { console.warn('Erro ao parsear planejamento semestral:', e, p); }
+    });
+  } else {
+    planSemCarregar();
+    if (planSemErr) console.warn('Erro ao carregar planejamentos semestrais do Supabase:', planSemErr.message);
   }
   renderDashboard();
 }
@@ -1555,7 +1674,7 @@ function setAval(id, val, btn) {
 }
 
 // ===================== NAVEGAÇÃO =====================
-const pageNames = { dashboard:'Início', turmas:'Turmas', alunos:'Alunos', relatorios:'Relatórios', importar:'Importar CSV', planejamento:'Planejamento Semanal', 'dashboard-semanas':'Dashboard das Semanas' };
+const pageNames = { dashboard:'Início', turmas:'Turmas', alunos:'Alunos', relatorios:'Relatórios', importar:'Importar CSV', planejamento:'Planejamento Semanal', 'dashboard-semanas':'Dashboard das Semanas', 'planejamento-semestral':'Planejamento Semestral' };
 
 function toggleSidebar() {
   const sidebar  = document.querySelector('.sidebar');
@@ -1576,7 +1695,7 @@ function goTo(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll('.nav-item')[['dashboard','alunos','relatorios','turmas','planejamento','importar','dashboard-semanas'].indexOf(page)]?.classList.add('active');
+  document.querySelectorAll('.nav-item')[['dashboard','alunos','relatorios','turmas','planejamento','dashboard-semanas','planejamento-semestral'].indexOf(page)]?.classList.add('active');
   document.getElementById('page-title').textContent = pageNames[page];
   closeSidebar();
   if (page === 'dashboard') renderDashboard();
@@ -1586,6 +1705,7 @@ function goTo(page) {
   if (page === 'alunos' || page === 'relatorios') populateFiltroTurma();
   if (page === 'planejamento') initPlanejamento();
   if (page === 'dashboard-semanas') initDashboardSemanas();
+  if (page === 'planejamento-semestral') initPlanejamentoSemestral();
 }
 
 // ===================== MODAIS =====================
@@ -4092,6 +4212,248 @@ function gerarPDFPlanejamento() {
     <button onclick="window.print()" style="background:#52b788;color:white;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
   </div>
   <div class="pagina">${paginasSemanas}</div>
+</body>
+</html>`);
+  win.document.close();
+}
+
+// ===================== PLANEJAMENTO SEMESTRAL =====================
+// planSemestralState: { "2026-1": { turma, professora, introducao, meses:[{mes,tematica,campos,objetivos,praticas,registro}] } }
+let planSemestralState = {};
+const INTRO_PADRAO_SEMESTRAL = 'As propostas aqui apresentadas são norteadas pelos documentos norteadores da educação: LDB (Lei de Diretrizes e Bases da Educação Nacional), BNCC (Base Nacional Comum Curricular) e pelos Cadernos do Currículo da Educação Infantil de Contagem. Todas as vivências, experiências e atividades aqui apresentadas fazem parte do PPP (Projeto Político Pedagógico) do CEMEI Vila da Paz.';
+
+function planSemCarregar() {
+  try {
+    var raw = localStorage.getItem('planSemestralState_v1');
+    if (raw) planSemestralState = JSON.parse(raw);
+  } catch(e) { planSemestralState = {}; }
+}
+
+let _planSemSalvarTimer = null;
+function planSemSalvar() {
+  try { localStorage.setItem('planSemestralState_v1', JSON.stringify(planSemestralState)); } catch(e) {}
+  clearTimeout(_planSemSalvarTimer);
+  _planSemSalvarTimer = setTimeout(planSemSalvarSupabase, 800);
+}
+
+async function planSemSalvarSupabase() {
+  if (!db) return;
+  syncStart();
+  try {
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) { syncErro(); return; }
+
+    const rows = [];
+    Object.entries(planSemestralState).forEach(([chave, dadosSem]) => {
+      const [anoStr, semestreStr] = chave.split('-');
+      const ano = parseInt(anoStr);
+      const semestre = parseInt(semestreStr);
+      const turma = dadosSem.turma || '';
+      const professora = dadosSem.professora || '';
+      const introducao = dadosSem.introducao || '';
+      const meses = dadosSem.meses || [];
+
+      if (!meses.length) {
+        rows.push({
+          user_id: user.id, ano, semestre, mes: 0,
+          turma, professora, introducao, dados: null,
+          atualizado_em: new Date().toISOString()
+        });
+      } else {
+        meses.forEach(m => {
+          rows.push({
+            user_id: user.id, ano, semestre, mes: m.mes,
+            turma, professora, introducao, dados: m,
+            atualizado_em: new Date().toISOString()
+          });
+        });
+      }
+    });
+
+    if (!rows.length) { syncOk(); return; }
+
+    const { error } = await db.from('planejamentos_semestrais').upsert(rows, { onConflict: 'user_id,ano,semestre,mes' });
+    if (error) {
+      syncErro();
+      console.error('Erro ao salvar planejamento semestral:', error.message, error);
+      toast('⚠️ Erro ao salvar planejamento semestral — veja o console (F12)');
+    } else {
+      syncOk();
+    }
+  } catch(e) {
+    syncErro();
+    console.error('Erro ao salvar planejamento semestral:', e);
+  }
+}
+
+function planSemKey() {
+  const s = document.getElementById('psem-semestre').value;
+  const a = document.getElementById('psem-ano').value;
+  return `${a}-${s}`;
+}
+
+function mesesDoSemestre(semestre) {
+  return semestre == 1 ? [2,3,4,5,6] : [8,9,10,11,12];
+}
+
+function initPlanejamentoSemestral() {
+  const key = planSemKey();
+  const semestre = parseInt(document.getElementById('psem-semestre').value);
+  if (!planSemestralState[key]) {
+    planSemestralState[key] = { turma: '', professora: '', introducao: INTRO_PADRAO_SEMESTRAL, meses: [] };
+  }
+  const dadosSem = planSemestralState[key];
+
+  // Garante que existe uma entrada para cada mês do semestre, sem apagar dados já digitados
+  const mesesEsperados = mesesDoSemestre(semestre);
+  mesesEsperados.forEach(mes => {
+    if (!dadosSem.meses.find(m => m.mes === mes)) {
+      dadosSem.meses.push({ mes, tematica: '', campos: '', objetivos: '', praticas: '', registro: '' });
+    }
+  });
+  dadosSem.meses = dadosSem.meses
+    .filter(m => mesesEsperados.includes(m.mes))
+    .sort((a,b) => mesesEsperados.indexOf(a.mes) - mesesEsperados.indexOf(b.mes));
+
+  document.getElementById('psem-turma').value = dadosSem.turma || '';
+  document.getElementById('psem-professora').value = dadosSem.professora || '';
+  document.getElementById('psem-introducao').value = dadosSem.introducao || INTRO_PADRAO_SEMESTRAL;
+
+  renderMesesSemestralList();
+}
+
+function salvarCabecalhoSemestral() {
+  const key = planSemKey();
+  if (!planSemestralState[key]) return;
+  planSemestralState[key].turma = document.getElementById('psem-turma').value;
+  planSemestralState[key].professora = document.getElementById('psem-professora').value;
+  planSemestralState[key].introducao = document.getElementById('psem-introducao').value;
+  planSemSalvar();
+}
+
+function renderMesesSemestralList() {
+  const key = planSemKey();
+  const dadosSem = planSemestralState[key] || { meses: [] };
+  const container = document.getElementById('psem-meses-lista');
+  container.innerHTML = '';
+
+  dadosSem.meses.forEach(function(mesObj, idx) {
+    const card = document.createElement('div');
+    card.className = 'mes-card';
+
+    const header = document.createElement('div');
+    header.className = 'mes-card-header';
+    header.innerHTML = '<h4>🗓️ ' + MESES_NOME[mesObj.mes] + '</h4>';
+    card.appendChild(header);
+
+    const body = document.createElement('div');
+    body.className = 'mes-card-body';
+
+    const campos = [
+      { key: 'tematica',  label: 'Temática' },
+      { key: 'campos',    label: 'Campos de Experiência' },
+      { key: 'objetivos', label: 'Objetivos Gerais' },
+      { key: 'praticas',  label: 'Sugestão de Práticas e Experiências' },
+      { key: 'registro',  label: 'Sugestão de Registro' },
+    ];
+
+    campos.forEach(function(campo) {
+      const wrap = document.createElement('div');
+      wrap.className = 'mes-campo';
+      if (campo.key === 'praticas') wrap.style.gridColumn = '1 / -1';
+      const lbl = document.createElement('label');
+      lbl.textContent = campo.label;
+      wrap.appendChild(lbl);
+      const ta = document.createElement('textarea');
+      ta.value = mesObj[campo.key] || '';
+      ta.placeholder = campo.label + '…';
+      ta.oninput = (function(i, k){ return function(){ salvarMesInline(i, k, this.value); }; })(idx, campo.key);
+      wrap.appendChild(ta);
+      body.appendChild(wrap);
+    });
+
+    card.appendChild(body);
+    container.appendChild(card);
+  });
+}
+
+function salvarMesInline(idx, campo, valor) {
+  const key = planSemKey();
+  if (!planSemestralState[key] || !planSemestralState[key].meses[idx]) return;
+  planSemestralState[key].meses[idx][campo] = valor;
+  planSemSalvar();
+}
+
+// ===================== GERAR DOCUMENTO DO PLANEJAMENTO SEMESTRAL =====================
+function gerarDocumentoSemestral() {
+  const key = planSemKey();
+  const semestre = parseInt(document.getElementById('psem-semestre').value);
+  const ano = parseInt(document.getElementById('psem-ano').value);
+  const dadosSem = planSemestralState[key];
+  if (!dadosSem) { toast('Nenhum dado de semestre encontrado.'); return; }
+
+  const turma = (dadosSem.turma || 'XXXXXX').toUpperCase();
+  const professora = (dadosSem.professora || 'XXXXXXXXXXXX').toUpperCase();
+  const introducao = dadosSem.introducao || INTRO_PADRAO_SEMESTRAL;
+  const meses = dadosSem.meses || [];
+
+  const linhasMeses = meses.map(m => `
+    <tr>
+      <td style="padding:8px 10px;border:1.2px solid #333;font-size:9.5pt;vertical-align:top;">${(m.tematica||'').replace(/\n/g,'<br>')}</td>
+      <td style="padding:8px 10px;border:1.2px solid #333;font-size:9.5pt;vertical-align:top;">${(m.campos||'').replace(/\n/g,'<br>')}</td>
+      <td style="padding:8px 10px;border:1.2px solid #333;font-size:9.5pt;vertical-align:top;">${(m.objetivos||'').replace(/\n/g,'<br>')}</td>
+      <td style="padding:8px 10px;border:1.2px solid #333;font-size:9.5pt;vertical-align:top;">${(m.praticas||'').replace(/\n/g,'<br>')}</td>
+      <td style="padding:8px 10px;border:1.2px solid #333;font-size:9.5pt;vertical-align:top;">${(m.registro||'').replace(/\n/g,'<br>')}</td>
+      <td style="padding:8px 10px;border:1.2px solid #333;font-size:9.5pt;font-weight:700;text-align:center;vertical-align:top;white-space:nowrap;">${MESES_NOME[m.mes].toUpperCase()}</td>
+    </tr>`).join('');
+
+  const win = window.open('', '_blank');
+  win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Proposta Pedagógica ${semestre}º Semestre – ${ano}</title>
+  <style>
+    @page { size: A4 landscape; margin: 1.3cm 1.5cm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: white; color: #111; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { vertical-align: top; }
+    .titulo { text-align:center; font-weight:900; font-size:14pt; color:#1a4332; letter-spacing:1px; margin-bottom:10pt; }
+    .intro { font-size:10pt; line-height:1.6; text-align:justify; margin-bottom:14pt; }
+    @media screen {
+      body { background: #e0e0e0; padding: 24px; }
+      .pagina { background: white; max-width: 290mm; margin: 0 auto 32px; padding: 22px; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,.15); }
+    }
+    @media print {
+      body { background: white; padding: 0; }
+      .no-print { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="position:sticky;top:0;z-index:99;background:#1b4332;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;max-width:290mm;margin:0 auto 16px;border-radius:0 0 10px 10px;box-shadow:0 4px 12px rgba(0,0,0,.2);">
+    <div style="color:white;font-weight:700;font-size:14px;">📚 Proposta Pedagógica – ${semestre}º Semestre ${ano} · ${meses.length} mês(es)</div>
+    <button onclick="window.print()" style="background:#52b788;color:white;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
+  </div>
+  <div class="pagina">
+    <div class="titulo">PROPOSTA PEDAGÓGICA ${semestre}º SEMESTRE</div>
+    <div class="intro">${introducao.replace(/\n/g,'<br>')}</div>
+    <table style="border:1.5px solid #333;">
+      <tr>
+        <td colspan="6" style="padding:6px 10px;border:1.5px solid #333;font-weight:700;font-size:10pt;text-align:center;">TURMA ${turma} &nbsp;–&nbsp; PROFESSORA: ${professora}</td>
+      </tr>
+      <tr style="background:#e8e8e8;">
+        <th style="padding:7px 10px;border:1.5px solid #333;text-align:left;font-size:9pt;">TEMÁTICA</th>
+        <th style="padding:7px 10px;border:1.5px solid #333;text-align:left;font-size:9pt;">CAMPOS DE EXPERIÊNCIA</th>
+        <th style="padding:7px 10px;border:1.5px solid #333;text-align:left;font-size:9pt;">OBJETIVOS GERAIS</th>
+        <th style="padding:7px 10px;border:1.5px solid #333;text-align:left;font-size:9pt;">SUGESTÃO DE PRÁTICAS E EXPERIÊNCIAS</th>
+        <th style="padding:7px 10px;border:1.5px solid #333;text-align:left;font-size:9pt;">SUGESTÃO DE REGISTRO</th>
+        <th style="padding:7px 10px;border:1.5px solid #333;text-align:center;font-size:9pt;width:80pt;">PERÍODO/MÊS DE EXECUÇÃO</th>
+      </tr>
+      ${linhasMeses}
+    </table>
+  </div>
 </body>
 </html>`);
   win.document.close();
