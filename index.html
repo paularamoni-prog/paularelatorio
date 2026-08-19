@@ -1049,7 +1049,7 @@
             <label style="margin-bottom:0;">Introdução / Justificativa Pedagógica</label>
             <button type="button" class="btn btn-outline btn-sm" onclick="restaurarIntroducaoPadrao()" title="Restaurar o texto institucional padrão (LDB, BNCC, Cadernos do Currículo, PPP)">↺ Restaurar texto padrão</button>
           </div>
-          <textarea id="psem-introducao" placeholder="Texto introdutório sobre a base pedagógica e importância do trabalho…" oninput="salvarCabecalhoSemestral()"></textarea>
+          <textarea id="psem-introducao" placeholder="Texto introdutório sobre a base pedagógica e importância do trabalho…" oninput="salvarCabecalhoSemestral()" spellcheck="true" lang="pt-BR"></textarea>
         </div>
       </div>
 
@@ -1252,7 +1252,7 @@
         <div class="avaliacao-section">
           <h4>📝 Observações Adicionais</h4>
           <div class="form-group">
-            <textarea id="obs-adicionais" placeholder="Informações complementares sobre o aluno que devem aparecer no relatório…" style="min-height:80px;"></textarea>
+            <textarea id="obs-adicionais" placeholder="Informações complementares sobre o aluno que devem aparecer no relatório…" style="min-height:80px;" spellcheck="true" lang="pt-BR"></textarea>
           </div>
         </div>
       </div>
@@ -1270,7 +1270,7 @@
         <div id="rel-edit-area" style="display:none;margin-top:16px;">
           <div class="form-group">
             <label>Editar texto do relatório:</label>
-            <textarea id="rel-texto-editavel" style="min-height:180px;font-family:'Lora',serif;font-size:14px;line-height:1.8;"></textarea>
+            <textarea id="rel-texto-editavel" style="min-height:180px;font-family:'Lora',serif;font-size:14px;line-height:1.8;" spellcheck="true" lang="pt-BR"></textarea>
           </div>
           <div style="display:flex;gap:8px;margin-top:10px;">
             <button class="btn btn-primary btn-sm" onclick="salvarTextoEditado()">💾 Salvar edição</button>
@@ -1515,6 +1515,22 @@
 <div class="toast" id="toast"></div>
 
 <script>
+// ===================== CORRETOR ORTOGRÁFICO (navegador) =====================
+// Garante que toda textarea — inclusive as criadas dinamicamente via JS —
+// tenha a verificação ortográfica nativa do navegador ativada em pt-BR
+// (sublinhado vermelho ondulado em palavras que o navegador não reconhece).
+(function(){
+  const origCreateElement = document.createElement.bind(document);
+  document.createElement = function(tagName, ...args){
+    const el = origCreateElement(tagName, ...args);
+    if (typeof tagName === 'string' && tagName.toLowerCase() === 'textarea') {
+      el.setAttribute('spellcheck', 'true');
+      el.setAttribute('lang', 'pt-BR');
+    }
+    return el;
+  };
+})();
+
 // ===================== SUPABASE =====================
 const { createClient } = supabase;
 let db = null;          // inicializado após carregar config.json
