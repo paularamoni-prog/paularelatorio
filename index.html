@@ -703,8 +703,8 @@
     <div class="nav-item" onclick="goTo('relatorios')"><span class="icon">📄</span> Relatórios</div>
     <div class="nav-item" onclick="goTo('turmas')"><span class="icon">🏫</span> Turmas</div>
     <div class="nav-item" onclick="goTo('planejamento')"><span class="icon">📋</span> Planejamento</div>
-    <div class="nav-item" onclick="goTo('planejamento-mensal')"><span class="icon">📆</span> Planejamento Mensal</div>
     <div class="nav-item" onclick="goTo('dashboard-semanas')"><span class="icon">🗓️</span> Dashboard Semanas</div>
+    <div class="nav-item" onclick="goTo('planejamento-mensal')"><span class="icon">📆</span> Planejamento Mensal</div>
     <div class="nav-item" onclick="goTo('planejamento-semestral')"><span class="icon">📚</span> Planejamento Semestral</div>
   </nav>
   <div class="sidebar-footer">
@@ -1727,11 +1727,13 @@ function closeSidebar() {
   document.getElementById('hamburger').classList.remove('open');
 }
 
+let paginaAtual = 'dashboard';
 function goTo(page) {
+  paginaAtual = page;
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  document.querySelectorAll('.nav-item')[['dashboard','alunos','relatorios','turmas','planejamento','planejamento-mensal','dashboard-semanas','planejamento-semestral'].indexOf(page)]?.classList.add('active');
+  document.querySelectorAll('.nav-item')[['dashboard','alunos','relatorios','turmas','planejamento','dashboard-semanas','planejamento-mensal','planejamento-semestral'].indexOf(page)]?.classList.add('active');
   document.getElementById('page-title').textContent = pageNames[page];
   closeSidebar();
   if (page === 'dashboard') renderDashboard();
@@ -1743,17 +1745,103 @@ function goTo(page) {
   if (page === 'planejamento-mensal') initPlanejamentoMensal();
   if (page === 'dashboard-semanas') initDashboardSemanas();
   if (page === 'planejamento-semestral') initPlanejamentoSemestral();
+  salvarUiState();
 }
+
+// ===================== RETOMAR PONTO DE EDIÇÃO =====================
+// Guarda em localStorage em que página/filtro/aluno o usuário estava, para
+// que ao atualizar (F5) ou reabrir o app ele volte exatamente para lá.
+function capturarUiState() {
+  const g = id => document.getElementById(id);
+  return {
+    page: paginaAtual,
+    planMes: g('plan-mes')?.value,
+    planAno: g('plan-ano')?.value,
+    pmMes: g('pm-mes')?.value,
+    pmAno: g('pm-ano')?.value,
+    dsMes: g('ds-mes')?.value,
+    dsAno: g('ds-ano')?.value,
+    dsSem1: g('ds-sem1')?.value,
+    dsSem2: g('ds-sem2')?.value,
+    psemSemestre: g('psem-semestre')?.value,
+    psemAno: g('psem-ano')?.value,
+    filtroTurma: g('filtro-turma')?.value,
+    filtroRelTurma: g('filtro-rel-turma')?.value,
+    buscaAluno: g('busca-aluno')?.value,
+    currentAlunoId: currentAlunoId,
+    currentTab: currentTab,
+    modalAvaliacaoAberto: g('modal-avaliacao')?.classList.contains('open') || false
+  };
+}
+
+function salvarUiState() {
+  try { localStorage.setItem('uiState_v1', JSON.stringify(capturarUiState())); } catch(e) {}
+}
+
+function restaurarUiState() {
+  let raw;
+  try { raw = localStorage.getItem('uiState_v1'); } catch(e) { return; }
+  if (!raw) return;
+  let st;
+  try { st = JSON.parse(raw); } catch(e) { return; }
+  if (!st || !st.page || !document.getElementById('page-' + st.page)) return;
+
+  const setVal = (id, val) => { const el = document.getElementById(id); if (el && val) el.value = val; };
+
+  // Restaura selects estáticos (opções fixas) antes de navegar, para que os
+  // init/render de cada página já usem o mês/ano/semestre certos.
+  setVal('plan-mes', st.planMes);
+  setVal('plan-ano', st.planAno);
+  setVal('pm-mes', st.pmMes);
+  setVal('pm-ano', st.pmAno);
+  setVal('psem-semestre', st.psemSemestre);
+  setVal('psem-ano', st.psemAno);
+
+  goTo(st.page);
+
+  // Pós-navegação: casos com opções geradas dinamicamente ou filtros que
+  // são resetados durante o render da própria página.
+  if (st.page === 'dashboard-semanas') {
+    setVal('ds-sem1', st.dsSem1);
+    setVal('ds-sem2', st.dsSem2);
+    renderDashboardSemanas();
+  }
+  if (st.page === 'alunos') {
+    setVal('filtro-turma', st.filtroTurma);
+    setVal('busca-aluno', st.buscaAluno);
+    renderAlunos();
+  }
+  if (st.page === 'relatorios') {
+    setVal('filtro-rel-turma', st.filtroRelTurma);
+    renderRelatorios();
+  }
+
+  // Retoma a avaliação/relatório do aluno que estava sendo editado.
+  if (st.modalAvaliacaoAberto && st.currentAlunoId && state.alunos.some(a => a.id === st.currentAlunoId)) {
+    openAvaliacao(st.currentAlunoId);
+    if (st.currentTab === 'relatorio') switchTab('relatorio');
+  }
+}
+
+// Captura o estado sempre que o usuário mudar um filtro/período relevante,
+// e como rede de segurança antes de a página fechar ou recarregar.
+document.addEventListener('change', function(e) {
+  const idsMonitorados = ['plan-mes','plan-ano','pm-mes','pm-ano','ds-mes','ds-ano','ds-sem1','ds-sem2','psem-semestre','psem-ano','filtro-turma','filtro-rel-turma'];
+  if (e.target && idsMonitorados.includes(e.target.id)) salvarUiState();
+});
+window.addEventListener('beforeunload', salvarUiState);
+setInterval(salvarUiState, 5000);
 
 // ===================== MODAIS =====================
 function openModal(id) { document.getElementById(id).classList.add('open'); }
-function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); salvarUiState(); }
 
 function switchTab(tab) {
   currentTab = tab;
   document.querySelectorAll('.tabs .tab').forEach((t, i) => t.classList.toggle('active', ['avaliacao','relatorio'][i] === tab));
   document.getElementById('tab-avaliacao').style.display = tab === 'avaliacao' ? '' : 'none';
   document.getElementById('tab-relatorio').style.display = tab === 'relatorio' ? '' : 'none';
+  salvarUiState();
 }
 
 // ===================== TURMAS =====================
@@ -1963,6 +2051,7 @@ function openAvaliacao(alunoId) {
   document.getElementById('rel-actions').style.display = rel ? '' : 'none';
   switchTab('avaliacao');
   openModal('modal-avaliacao');
+  salvarUiState();
 }
 
 async function salvarAvaliacao() {
@@ -5300,6 +5389,7 @@ async function doLogin() {
     document.getElementById('login-screen').style.display = 'none';
     err.style.display = 'none';
     await loadState();
+    restaurarUiState();
   }
 }
 
@@ -5331,7 +5421,8 @@ async function fazerLogout() {
   const { data } = await db.auth.getSession();
   if (data.session) {
     document.getElementById('login-screen').style.display = 'none';
-    loadState();
+    await loadState();
+    restaurarUiState();
   }
 })();
 </script>
