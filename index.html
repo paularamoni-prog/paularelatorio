@@ -898,7 +898,8 @@
           </select>
           <div id="plan-tema-wrapper">
             <input type="text" id="plan-tema-input" placeholder="Tema do mês…"
-              style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;min-width:260px;">
+              style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;min-width:260px;"
+              oninput="onTemaInputChange()">
           </div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -3300,6 +3301,16 @@ function getTemaAtual() {
 function setTemaDropdown(temaStr) {
   const input = document.getElementById('plan-tema-input');
   if (input) input.value = temaStr || '';
+}
+// Atualiza o tema do mês em planState assim que o usuário digita, sem
+// precisar abrir/salvar uma semana — assim o Planejamento Mensal (e o
+// documento gerado) sempre refletem o texto atual digitado.
+function onTemaInputChange() {
+  const key = planKey();
+  const tema = getTemaAtual();
+  if (!planState[key]) planState[key] = { tema: '', semanas: [] };
+  planState[key].tema = tema;
+  planSalvar();
 }
 
 // ===================== PICKER DE SEMANA =====================
