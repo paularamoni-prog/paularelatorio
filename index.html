@@ -3888,10 +3888,34 @@ function editarSemana(idx) {
 function removerSemana(idx) {
   const key = planKey();
   if (!confirm('Remover esta semana?')) return;
+  const semRemovida = planState[key].semanas[idx];
   planState[key].semanas.splice(idx, 1);
   planSalvar();
   renderSemanasList();
   if (!planState[key].semanas.length) document.getElementById('plan-empty').style.display = '';
+  // Remove também a linha correspondente no Supabase — sem isso, a semana
+  // ficava "fantasma" no banco e voltava sozinha ao reiniciar o app,
+  // pois o upsert normal só grava/atualiza, nunca apaga linhas órfãs.
+  if (semRemovida && semRemovida.id) {
+    const [anoStr, mesStr] = key.split('-');
+    deletarSemanaSupabase(parseInt(anoStr), parseInt(mesStr), semRemovida.id);
+  }
+}
+
+async function deletarSemanaSupabase(ano, mes, semanaId) {
+  if (!db) return;
+  try {
+    const { data: { user } } = await db.auth.getUser();
+    if (!user) return;
+    const { error } = await db.from('planejamentos').delete()
+      .eq('user_id', user.id).eq('ano', ano).eq('mes', mes).eq('semana_id', semanaId);
+    if (error) {
+      console.error('Erro ao remover semana no Supabase:', error.message, error);
+      toast('⚠️ Semana removida localmente, mas houve erro ao remover do banco — veja o console (F12)');
+    }
+  } catch (e) {
+    console.error('Erro ao remover semana no Supabase:', e);
+  }
 }
 
 function abrirModalSemana(idx) {
