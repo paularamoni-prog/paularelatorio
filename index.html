@@ -3397,6 +3397,16 @@ function planKey() {
   return `${a}-${m}`;
 }
 
+// Ajusta a altura de um textarea ao conteúdo digitado, sem desfazer um
+// redimensionamento manual feito pelo usuário (só aumenta quando o texto
+// não cabe mais na altura atual; nunca reduz automaticamente).
+function autoGrowTextarea(ta) {
+  if (!ta) return;
+  if (ta.scrollHeight > ta.clientHeight) {
+    ta.style.height = ta.scrollHeight + 'px';
+  }
+}
+
 function initPlanejamento() {
   const key = planKey();
   const tema = (planState[key] || {}).tema || '';
@@ -3583,7 +3593,7 @@ function renderSemanasList() {
       taAtv.placeholder = 'Atividades do dia…';
       taAtv.id = 'sl-atv-' + uid;
       taAtv.value = dia.atividades || '';
-      taAtv.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); }; })(idx, di, uid);
+      taAtv.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); autoGrowTextarea(this); }; })(idx, di, uid);
       taAtv.onfocus = function(){ this.style.borderColor='var(--verde-claro)'; this.style.background='white'; };
       taAtv.onblur  = function(){ this.style.borderColor='var(--cinza-borda)'; this.style.background='var(--cinza-bg)'; };
       tdAtv.appendChild(taAtv);
@@ -3597,7 +3607,7 @@ function renderSemanasList() {
       taRec.placeholder = 'Recursos…';
       taRec.id = 'sl-rec-' + uid;
       taRec.value = dia.recurso || '';
-      taRec.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); }; })(idx, di, uid);
+      taRec.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); autoGrowTextarea(this); }; })(idx, di, uid);
       taRec.onfocus = function(){ this.style.borderColor='var(--verde-claro)'; this.style.background='white'; };
       taRec.onblur  = function(){ this.style.borderColor='var(--cinza-borda)'; this.style.background='var(--cinza-bg)'; };
       tdRec.appendChild(taRec);
@@ -3611,7 +3621,7 @@ function renderSemanasList() {
       taObs.placeholder = 'Observações…';
       taObs.id = 'sl-obs-' + uid;
       taObs.value = dia.obs || '';
-      taObs.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); }; })(idx, di, uid);
+      taObs.oninput = (function(si, di2, uid2){ return function(){ salvarDiaInline(si, di2, uid2); autoGrowTextarea(this); }; })(idx, di, uid);
       taObs.onfocus = function(){ this.style.borderColor='var(--verde-claro)'; this.style.background='white'; };
       taObs.onblur  = function(){ this.style.borderColor='var(--cinza-borda)'; this.style.background='var(--cinza-bg)'; };
       tdObs.appendChild(taObs);
@@ -3630,6 +3640,10 @@ function renderSemanasList() {
       var uid = 'sl-' + idx + '-' + di;
       var selecionados = (dia.cod || '').split('\n').map(function(s){ return s.trim(); }).filter(Boolean);
       initHabDropdownInline(uid, selecionados, idx, di);
+      // Ajusta a altura inicial dos campos de texto ao conteúdo já salvo
+      autoGrowTextarea(document.getElementById('sl-atv-' + uid));
+      autoGrowTextarea(document.getElementById('sl-rec-' + uid));
+      autoGrowTextarea(document.getElementById('sl-obs-' + uid));
     });
   });
 }
@@ -3956,6 +3970,7 @@ function abrirModalSemana(idx) {
     atvTA.id = 'pdia-atv-' + di;
     atvTA.placeholder = 'Descreva as atividades do dia…';
     atvTA.value = dia.atividades || '';
+    atvTA.oninput = function(){ autoGrowTextarea(this); };
     atvGroup.appendChild(atvLabel);
     atvGroup.appendChild(atvTA);
     body.appendChild(atvGroup);
@@ -3970,6 +3985,7 @@ function abrirModalSemana(idx) {
     recTA.id = 'pdia-rec-' + di;
     recTA.placeholder = 'Recursos utilizados…';
     recTA.value = dia.recurso || '';
+    recTA.oninput = function(){ autoGrowTextarea(this); };
     recGroup.appendChild(recLabel);
     recGroup.appendChild(recTA);
     body.appendChild(recGroup);
@@ -3984,6 +4000,7 @@ function abrirModalSemana(idx) {
     obsTA.id = 'pdia-obs-' + di;
     obsTA.placeholder = 'Observações…';
     obsTA.value = dia.obs || '';
+    obsTA.oninput = function(){ autoGrowTextarea(this); };
     obsGroup.appendChild(obsLabel);
     obsGroup.appendChild(obsTA);
     body.appendChild(obsGroup);
@@ -3997,6 +4014,14 @@ function abrirModalSemana(idx) {
   });
 
   openModal('modal-planejamento-semana');
+
+  // Ajusta a altura inicial dos campos de texto ao conteúdo já salvo
+  // (precisa ser depois de abrir o modal, senão os campos estão ocultos e ficam com altura 0)
+  sem.dias.forEach(function(dia, di) {
+    autoGrowTextarea(document.getElementById('pdia-atv-' + di));
+    autoGrowTextarea(document.getElementById('pdia-rec-' + di));
+    autoGrowTextarea(document.getElementById('pdia-obs-' + di));
+  });
 }
 
 function salvarSemanaModal() {
