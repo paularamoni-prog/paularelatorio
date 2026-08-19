@@ -896,27 +896,9 @@
           <select id="plan-ano" style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;" onchange="renderSemanasList()">
             <option value="2026" selected>2026</option><option value="2027">2027</option>
           </select>
-          <div style="position:relative;" id="plan-tema-wrapper">
-            <button type="button" id="plan-tema-btn" onclick="toggleTemaDropdown()"
-              style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;cursor:pointer;min-width:260px;text-align:left;display:flex;align-items:center;justify-content:space-between;gap:8px;">
-              <span id="plan-tema-label" style="color:#999;">Tema do mês…</span>
-              <span style="font-size:10px;color:#aaa;">▾</span>
-            </button>
-            <div id="plan-tema-dropdown" style="display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:200;background:white;border:1.5px solid var(--cinza-borda);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12);padding:10px 0;min-width:280px;">
-              <div style="padding:4px 14px 8px;font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:1px;">Cinco Sentidos</div>
-              <label class="tema-opt"><input type="checkbox" value="Visão" onchange="atualizarTemaLabel()"> 👁️ Visão</label>
-              <label class="tema-opt"><input type="checkbox" value="Audição" onchange="atualizarTemaLabel()"> 👂 Audição</label>
-              <label class="tema-opt"><input type="checkbox" value="Olfato" onchange="atualizarTemaLabel()"> 👃 Olfato</label>
-              <label class="tema-opt"><input type="checkbox" value="Paladar" onchange="atualizarTemaLabel()"> 👅 Paladar</label>
-              <label class="tema-opt"><input type="checkbox" value="Tato" onchange="atualizarTemaLabel()"> ✋ Tato</label>
-              <div style="height:1px;background:var(--cinza-borda);margin:8px 0;"></div>
-              <div style="padding:4px 14px 8px;font-size:10px;font-weight:700;color:var(--texto-suave);text-transform:uppercase;letter-spacing:1px;">Outros temas</div>
-              <label class="tema-opt"><input type="checkbox" value="Identidade e Família" onchange="atualizarTemaLabel()"> 👨‍👩‍👧 Identidade e Família</label>
-              <label class="tema-opt"><input type="checkbox" value="Natureza e Meio Ambiente" onchange="atualizarTemaLabel()"> 🌿 Natureza e Meio Ambiente</label>
-              <label class="tema-opt"><input type="checkbox" value="Corpo Humano" onchange="atualizarTemaLabel()"> 🧍 Corpo Humano</label>
-              <label class="tema-opt"><input type="checkbox" value="Movimento e Expressão" onchange="atualizarTemaLabel()"> 🎨 Movimento e Expressão</label>
-              <label class="tema-opt"><input type="checkbox" value="Festa da Família" onchange="atualizarTemaLabel()"> 🎉 Festa da Família</label>
-            </div>
+          <div id="plan-tema-wrapper">
+            <input type="text" id="plan-tema-input" placeholder="Tema do mês…"
+              style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;min-width:260px;">
           </div>
         </div>
         <div style="display:flex;gap:8px;">
@@ -3310,44 +3292,14 @@ function codigosParaTextoObjetivos(codigos) {
   }).join('\n');
 }
 
-// ===================== TEMA MULTISELECT =====================
-function toggleTemaDropdown() {
-  const dd = document.getElementById('plan-tema-dropdown');
-  dd.style.display = dd.style.display === 'none' ? 'block' : 'none';
-}
-// fechar ao clicar fora
-document.addEventListener('click', e => {
-  const wrapper = document.getElementById('plan-tema-wrapper');
-  if (wrapper && !wrapper.contains(e.target)) {
-    const dd = document.getElementById('plan-tema-dropdown');
-    if (dd) dd.style.display = 'none';
-  }
-});
-function atualizarTemaLabel() {
-  const checks = document.querySelectorAll('#plan-tema-dropdown input[type=checkbox]:checked');
-  const temas = Array.from(checks).map(c => c.value);
-  const label = document.getElementById('plan-tema-label');
-  if (temas.length === 0) {
-    label.textContent = 'Tema do mês…';
-    label.style.color = '#999';
-  } else {
-    label.textContent = temas.join(' · ');
-    label.style.color = 'var(--texto)';
-  }
-}
+// ===================== TEMA (texto livre) =====================
 function getTemaAtual() {
-  const checks = document.querySelectorAll('#plan-tema-dropdown input[type=checkbox]:checked');
-  return Array.from(checks).map(c => c.value).join(' · ');
+  const input = document.getElementById('plan-tema-input');
+  return input ? input.value.trim() : '';
 }
 function setTemaDropdown(temaStr) {
-  // Desmarca todos
-  document.querySelectorAll('#plan-tema-dropdown input[type=checkbox]').forEach(c => c.checked = false);
-  if (!temaStr) { atualizarTemaLabel(); return; }
-  const partes = temaStr.split(' · ');
-  document.querySelectorAll('#plan-tema-dropdown input[type=checkbox]').forEach(c => {
-    if (partes.includes(c.value)) c.checked = true;
-  });
-  atualizarTemaLabel();
+  const input = document.getElementById('plan-tema-input');
+  if (input) input.value = temaStr || '';
 }
 
 // ===================== PICKER DE SEMANA =====================
