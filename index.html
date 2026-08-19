@@ -960,7 +960,7 @@
       </div>
 
       <p style="font-size:12px;color:var(--texto-suave);margin:-8px 0 18px;">
-        Reúne, em um único documento, todas as semanas já lançadas no Planejamento Semanal para o mês selecionado.
+        Reúne, em uma única tabela, o conjunto de habilidades, atividades e recursos de cada semana já lançada no Planejamento Semanal — uma linha por semana, pronta para caber em uma folha A4 paisagem.
       </p>
 
       <!-- Pré-visualização com as semanas do mês já juntas -->
@@ -4200,9 +4200,145 @@ function montarCardSemanaDocumento(sem, mes, ano, tema) {
     `;
 }
 
+// Junta, sem repetição, os itens de um campo (cod/atividades/recurso) de
+// todos os dias de uma semana, preservando a ordem de primeira aparição.
+// Usado para montar o Planejamento Mensal, que resume cada semana em uma
+// única linha por campo, em vez de repetir dia a dia.
+function agregarCampoSemana(sem, campo) {
+  const vistos = new Set();
+  const itens = [];
+  (sem.dias || []).forEach(dia => {
+    ((dia[campo] || '').split('\n')).forEach(linha => {
+      const l = linha.trim();
+      if (l && !vistos.has(l)) { vistos.add(l); itens.push(l); }
+    });
+  });
+  return itens;
+}
+
+function listaHtmlCampoSemana(itens) {
+  if (!itens.length) return '<span style="color:#999;">—</span>';
+  return itens.map(i => `<div style="margin-bottom:3px;">• ${i}</div>`).join('');
+}
+
+// Monta o HTML do Planejamento Mensal: cabeçalho + UMA tabela única onde
+// cada linha corresponde a uma semana do mês (período semanal, habilidades,
+// atividades e recursos do conjunto da semana), pensada para caber inteira
+// em uma folha A4 paisagem.
+function montarTabelaMensalConsolidada(dadosMes, mes, ano) {
+  function dataInicioSemana(sem) {
+    if (sem.dias && sem.dias.length && sem.dias[0].data) {
+      var p = sem.dias[0].data.split('/');
+      return new Date(2000 + parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10)).getTime();
+    }
+    return 0;
+  }
+  const tema = dadosMes.tema || '';
+  const semanasOrdenadas = dadosMes.semanas.slice().sort((a, b) => dataInicioSemana(a) - dataInicioSemana(b));
+
+  const linhasSemanas = semanasOrdenadas.map(sem => {
+    const habilidades = listaHtmlCampoSemana(agregarCampoSemana(sem, 'cod'));
+    const atividades  = listaHtmlCampoSemana(agregarCampoSemana(sem, 'atividades'));
+    const recursos    = listaHtmlCampoSemana(agregarCampoSemana(sem, 'recurso'));
+    return `<tr style="border-bottom:1.5px solid #ccc;">
+      <td style="padding:8px 10px;font-weight:700;font-size:9pt;vertical-align:top;border-right:1.5px solid #ccc;white-space:nowrap;">${sem.label}</td>
+      <td style="padding:8px 10px;font-size:8.5pt;vertical-align:top;border-right:1.5px solid #ccc;line-height:1.5;">${habilidades}</td>
+      <td style="padding:8px 10px;font-size:8.5pt;vertical-align:top;border-right:1.5px solid #ccc;line-height:1.5;">${atividades}</td>
+      <td style="padding:8px 10px;font-size:8.5pt;vertical-align:top;line-height:1.5;">${recursos}</td>
+    </tr>`;
+  }).join('');
+
+  return `
+    <div style="padding:0;page-break-inside:avoid;">
+
+      <!-- CABECALHO com logos -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12pt;border-bottom:2px solid #2d6a4f;padding-bottom:8pt;">
+        <img src="data:image/png;base64,${LOGO_PREFEITURA_B64}" alt="Prefeitura Municipal de Contagem" style="height:52pt;width:auto;object-fit:contain;">
+        <div style="text-align:center;">
+          <div style="font-weight:900;font-size:13pt;color:#1a4332;letter-spacing:1px;">PLANEJAMENTO MENSAL</div>
+          <div style="font-size:10pt;color:#2d6a4f;font-weight:700;">${(tema || '').toUpperCase()}</div>
+          <div style="font-size:8.5pt;color:#555;margin-top:2px;">${MESES_NOME[mes]} de ${ano}</div>
+        </div>
+        <img src="data:image/png;base64,${LOGO_CEMEI_B64}" alt="CEMEI Vila da Paz" style="height:52pt;width:auto;object-fit:contain;">
+      </div>
+
+      <!-- TABELA CONSOLIDADA: uma linha por semana -->
+      <table style="width:100%;border-collapse:collapse;border:1.5px solid #333;margin-bottom:0;font-size:9pt;">
+        <tr>
+          <td colspan="3" style="padding:5px 8px;border:1.5px solid #333;font-weight:700;">LOTACAO: CEMEI VILA DA PAZ – VEREADOR AGRIPINO FERREIRA DIAS</td>
+          <td style="padding:5px 8px;border:1.5px solid #333;font-weight:700;white-space:nowrap;">MES/ANO: ${String(mes).padStart(2,'0')}/${String(ano).slice(-2)}</td>
+        </tr>
+        <tr>
+          <td colspan="3" style="padding:5px 8px;border:1.5px solid #333;font-weight:700;">PROFESSOR(A): Paula Ramoni da Silva</td>
+          <td style="padding:5px 8px;border:1.5px solid #333;font-weight:700;">COORD. PED.: FABIANA REIS</td>
+        </tr>
+        <tr style="background:#e8e8e8;">
+          <th style="padding:6px 10px;border:1.5px solid #333;text-align:left;font-size:8.5pt;width:130pt;">PERÍODO SEMANAL</th>
+          <th style="padding:6px 10px;border:1.5px solid #333;text-align:left;font-size:8.5pt;">HABILIDADES</th>
+          <th style="padding:6px 10px;border:1.5px solid #333;text-align:left;font-size:8.5pt;">ATIVIDADES EXECUTADAS</th>
+          <th style="padding:6px 10px;border:1.5px solid #333;text-align:left;font-size:8.5pt;">RECURSOS</th>
+        </tr>
+        ${linhasSemanas}
+        <!-- Assinatura -->
+        <tr>
+          <td colspan="3" style="padding:12px 8px 8px;border:1.5px solid #333;font-size:8.5pt;font-weight:700;">
+            ASSINATURA DA COORD. PEDAGOGICA: <span style="display:inline-block;width:260pt;border-bottom:1px solid #333;">&nbsp;</span>
+          </td>
+          <td style="padding:12px 8px 8px;border:1.5px solid #333;font-size:8.5pt;font-weight:700;text-align:right;">
+            DATA: ____/____/______
+          </td>
+        </tr>
+      </table>
+    </div>
+    `;
+}
+
+// Gera o documento impresso do Planejamento Mensal: UMA folha A4 paisagem
+// com uma tabela única (uma linha por semana) para o mês inteiro.
+function gerarPDFPlanejamentoMensalConsolidado(mes, ano) {
+  const key = `${ano}-${mes}`;
+  const dadosMes = planState[key];
+  if (!dadosMes || !dadosMes.semanas || !dadosMes.semanas.length) {
+    toast('Nenhuma semana cadastrada para este mes.');
+    return;
+  }
+  const win = window.open('', '_blank');
+  const tabela = montarTabelaMensalConsolidada(dadosMes, mes, ano);
+  win.document.write(`<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Planejamento Mensal – ${MESES_NOME[mes]} ${ano}</title>
+  <style>
+    @page { size: A4 landscape; margin: 1.2cm 1.5cm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, sans-serif; background: white; color: #111; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    table { border-collapse: collapse; }
+    td, th { vertical-align: top; }
+    @media screen {
+      body { background: #e0e0e0; padding: 24px; }
+      .pagina { background: white; max-width: 270mm; margin: 0 auto 32px; padding: 16px; border-radius: 4px; box-shadow: 0 4px 20px rgba(0,0,0,.15); }
+    }
+    @media print {
+      body { background: white; padding: 0; }
+      .no-print { display:none !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="no-print" style="position:sticky;top:0;z-index:99;background:#1b4332;padding:12px 20px;display:flex;align-items:center;justify-content:space-between;max-width:270mm;margin:0 auto 16px;border-radius:0 0 10px 10px;box-shadow:0 4px 12px rgba(0,0,0,.2);">
+    <div style="color:white;font-weight:700;font-size:14px;">📆 Planejamento Mensal – ${MESES_NOME[mes]} ${ano} · ${dadosMes.semanas.length} semana(s)</div>
+    <button onclick="window.print()" style="background:#52b788;color:white;border:none;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
+  </div>
+  <div class="pagina">${tabela}</div>
+</body>
+</html>`);
+  win.document.close();
+}
+
 // Gera o documento (janela de impressao / PDF) reunindo todas as semanas
 // ja lancadas de um mes/ano especifico -- usado pelo botao "Gerar PDF" do
-// Planejamento Semanal e pelo Planejamento Mensal.
+// Planejamento Semanal (dia a dia, uma pagina por semana).
 function gerarPDFPlanejamentoParaMes(mes, ano) {
   const key = `${ano}-${mes}`;
   const dadosMes = planState[key];
@@ -4278,26 +4414,13 @@ function renderPlanejamentoMensal() {
   cont.style.display = '';
   empty.style.display = 'none';
 
-  const tema = dadosMes.tema || '';
-
-  // Junta as semanas em ordem cronológica (da mais antiga para a mais recente),
-  // como num documento mensal.
-  function dataInicioSemana(sem) {
-    if (sem.dias && sem.dias.length && sem.dias[0].data) {
-      var p = sem.dias[0].data.split('/');
-      return new Date(2000 + parseInt(p[2], 10), parseInt(p[1], 10) - 1, parseInt(p[0], 10)).getTime();
-    }
-    return 0;
-  }
-  const semanasOrdenadas = dadosMes.semanas.slice().sort((a, b) => dataInicioSemana(a) - dataInicioSemana(b));
-
-  cont.innerHTML = semanasOrdenadas.map(sem => montarCardSemanaDocumento(sem, mes, ano, tema)).join('<div style="height:1px;background:var(--cinza-borda);margin:8px 0 24px;"></div>');
+  cont.innerHTML = montarTabelaMensalConsolidada(dadosMes, mes, ano);
 }
 
 function gerarDocumentoMensal() {
   const mes = parseInt(document.getElementById('pm-mes').value);
   const ano = parseInt(document.getElementById('pm-ano').value);
-  gerarPDFPlanejamentoParaMes(mes, ano);
+  gerarPDFPlanejamentoMensalConsolidado(mes, ano);
 }
 
 // ===================== PLANEJAMENTO SEMESTRAL =====================
