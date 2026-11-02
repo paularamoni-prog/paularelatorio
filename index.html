@@ -61,8 +61,12 @@
   .nav-item.active { background: rgba(82,183,136,0.18); color: var(--verde-claro); border-left-color: var(--verde-claro); }
   .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
   .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
-  select.semester-badge { width: 100%; cursor: pointer; appearance: none; -webkit-appearance: none; font-family: inherit; }
-  select.semester-badge option { color: #1c2e26; background: white; }
+  .sem-toggle { display:flex; align-items:center; gap:10px; background:#fff8e1; border:2px solid #f9c74f; border-radius:12px; padding:8px 14px; margin-bottom:16px; flex-wrap:wrap; }
+  .sem-toggle .sem-titulo { font-size:12px; font-weight:700; color:#a05c00; text-transform:uppercase; letter-spacing:.5px; }
+  .sem-toggle .sem-btns { display:flex; gap:6px; }
+  .sem-toggle button { border:2px solid #f9c74f; background:white; color:#7a5200; font-weight:700; font-size:13px; padding:7px 16px; border-radius:8px; cursor:pointer; font-family:inherit; }
+  .sem-toggle button.ativo { background:#1b4332; border-color:#1b4332; color:#f9c74f; }
+  .sem-toggle .sem-dica { font-size:12px; color:#7a5200; margin-left:auto; }
   .semester-badge {
     background: rgba(249,199,79,0.15); border: 1px solid rgba(249,199,79,0.35);
     color: var(--amarelo); font-size: 11px; font-weight: 600;
@@ -710,7 +714,7 @@
     <div class="nav-item" onclick="goTo('planejamento-semestral')"><span class="icon">📚</span> Planejamento Semestral</div>
   </nav>
   <div class="sidebar-footer">
-    <select id="sel-semestre" class="semester-badge" onchange="trocarSemestre(this.value)" title="Semestre de trabalho"><option value="1">1º Semestre 2026</option><option value="2">2º Semestre 2026</option></select>
+    <div class="semester-badge" id="badge-semestre">2º Semestre 2026</div>
     <button class="btn-sair" onclick="fazerLogout()">🚪 Sair</button>
   </div>
 </div>
@@ -794,6 +798,14 @@
 
     <!-- ALUNOS -->
     <div class="page" id="page-alunos">
+      <div class="sem-toggle">
+        <span class="sem-titulo">📅 Semestre</span>
+        <div class="sem-btns">
+          <button type="button" data-sem="1" onclick="trocarSemestre(1)">1º Semestre 2026</button>
+          <button type="button" data-sem="2" onclick="trocarSemestre(2)">2º Semestre 2026</button>
+        </div>
+        <span class="sem-dica">Avaliações e relatórios abaixo são do semestre selecionado</span>
+      </div>
       <div style="display:flex;gap:12px;align-items:center;margin-bottom:20px;flex-wrap:wrap;">
         <select id="filtro-turma" class="form-group" style="padding:9px 14px;border:1.5px solid var(--cinza-borda);border-radius:8px;font-size:13px;background:white;min-width:180px;" onchange="renderAlunos()">
           <option value="">Todas as turmas</option>
@@ -1532,8 +1544,9 @@ function semLabel() { return `${semestreAtual}º Semestre ${ANO_LETIVO}`; }
 function aplicarSemestre() {
   state.avaliacoes = allAval[semestreAtual];
   state.relatorios = allRel[semestreAtual];
-  const sel = document.getElementById('sel-semestre');
-  if (sel) sel.value = String(semestreAtual);
+  document.querySelectorAll('.sem-toggle button[data-sem]').forEach(b => b.classList.toggle('ativo', b.dataset.sem === String(semestreAtual)));
+  const badge = document.getElementById('badge-semestre');
+  if (badge) badge.textContent = semLabel();
 }
 const SQL_SEMESTRE = `-- Rode no Supabase (SQL Editor). Seus dados atuais viram "1º semestre".
 alter table avaliacoes add column if not exists semestre int not null default 1;
