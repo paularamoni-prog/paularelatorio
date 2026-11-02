@@ -935,7 +935,9 @@
             <option value="so2">Só 2º semestre</option>
           </select>
           <label class="comp-check"><input type="checkbox" id="comp-compacto" onchange="renderComparativo()"> Textos compactos</label>
-          <button class="btn btn-outline btn-sm" onclick="window.print()" title="Imprimir esta comparação">🖨️ Imprimir</button>
+          <button class="btn btn-outline btn-sm" onclick="imprimirComparativo()" title="Abre a janela de impressão. Para PDF, escolha “Salvar como PDF” como impressora">🖨️ Imprimir / Gerar PDF</button>
+          <button class="btn btn-outline btn-sm" onclick="exportarComparativo('docx')" title="Baixar a comparação em Word">📝 Word (.docx)</button>
+          <button class="btn btn-outline btn-sm" onclick="exportarComparativo('odt')" title="Baixar a comparação em OpenDocument (LibreOffice, Google Docs)">📄 OpenDocument (.odt)</button>
           <div class="comp-resumo" id="comp-resumo"></div>
         </div>
         <div id="comp-lista"></div>
@@ -2473,17 +2475,8 @@ function _cmpPalavras(t) { return t ? t.trim().split(/\s+/).filter(Boolean).leng
 function renderComparativo() {
   const box = document.getElementById('comp-lista');
   if (!box) return;
-  const turmaId = document.getElementById('filtro-comp-turma').value;
-  const busca = (document.getElementById('busca-comp').value || '').trim().toLowerCase();
-  const status = document.getElementById('filtro-comp-status').value;
+  const { base, lista, tem1, tem2 } = _cmpDados();
   const compacto = document.getElementById('comp-compacto').checked;
-
-  const base = state.alunos.filter(a =>
-    (!turmaId || a.turmaId === turmaId) &&
-    (!busca || a.nome.toLowerCase().includes(busca))
-  );
-  const tem1 = a => !!allRel[1][a.id];
-  const tem2 = a => !!allRel[2][a.id];
 
   // resumo (sobre o filtro de turma/busca, antes do filtro de status)
   const nAmbos = base.filter(a => tem1(a) && tem2(a)).length;
@@ -2494,15 +2487,6 @@ function renderComparativo() {
     `<span class="comp-pill">2º sem: <b>${n2}</b></span>` +
     `<span class="comp-pill">Ambos: <b>${nAmbos}</b></span>` +
     `<span class="comp-pill">Alunos: <b>${base.length}</b></span>`;
-
-  let lista = base.filter(a => {
-    if (status === 'ambos') return tem1(a) && tem2(a);
-    if (status === 'falta') return !(tem1(a) && tem2(a));
-    if (status === 'so1')   return tem1(a) && !tem2(a);
-    if (status === 'so2')   return !tem1(a) && tem2(a);
-    return true;
-  });
-  lista.sort((a, b) => a.nome.localeCompare(b.nome));
 
   if (!lista.length) {
     box.innerHTML = `<div class="card"><div class="empty-state"><div class="icon">⚖️</div><p>${base.length ? 'Nenhum aluno com esse filtro.' : 'Nenhum aluno encontrado.'}</p></div></div>`;
@@ -2543,6 +2527,203 @@ function renderComparativo() {
       <div class="comp-cols">${coluna(a, 1)}${coluna(a, 2)}</div>
     </div>`;
   }).join('') + `</div>`;
+}
+
+// ---- Dados filtrados (usados na tela, na impressão/PDF e nas exportações) ----
+function _cmpDados() {
+  const turmaId = document.getElementById('filtro-comp-turma').value;
+  const busca = (document.getElementById('busca-comp').value || '').trim().toLowerCase();
+  const status = document.getElementById('filtro-comp-status').value;
+  const base = state.alunos.filter(a =>
+    (!turmaId || a.turmaId === turmaId) &&
+    (!busca || a.nome.toLowerCase().includes(busca))
+  );
+  const tem1 = a => !!allRel[1][a.id];
+  const tem2 = a => !!allRel[2][a.id];
+  const lista = base.filter(a => {
+    if (status === 'ambos') return tem1(a) && tem2(a);
+    if (status === 'falta') return !(tem1(a) && tem2(a));
+    if (status === 'so1')   return tem1(a) && !tem2(a);
+    if (status === 'so2')   return !tem1(a) && tem2(a);
+    return true;
+  }).sort((a, b) => a.nome.localeCompare(b.nome));
+  return { base, lista, turmaId, tem1, tem2 };
+}
+function _cmpLinhas() {
+  return _cmpDados().lista.map(a => {
+    const t = state.turmas.find(t => t.id === a.turmaId);
+    return { nome: a.nome, turma: t ? t.nome : '—', especial: !!a.especial, r1: allRel[1][a.id] || '', r2: allRel[2][a.id] || '' };
+  });
+}
+function _cmpMeta() {
+  const sel = document.getElementById('filtro-comp-turma');
+  const turmaTxt = sel.value ? sel.options[sel.selectedIndex].text : 'Todas as turmas';
+  const data = new Date().toLocaleDateString('pt-BR');
+  return {
+    titulo: `Relatórios — Comparativo 1º × 2º Semestre ${ANO_LETIVO}`,
+    sub: `CEMEI Vila da Paz · ${turmaTxt} · Gerado em ${data}`,
+    turmaTxt,
+    arquivoBase: 'Comparativo_Relatorios_' + (sel.value ? turmaTxt : 'todas_as_turmas').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^\w\-]+/g, '_') + '_' + new Date().toISOString().slice(0, 10)
+  };
+}
+const _CMP_VAZIO = 'Relatório ainda não gerado.';
+
+// ---- Imprimir / Gerar PDF ----
+function imprimirComparativo() {
+  const rows = _cmpLinhas();
+  if (!rows.length) { toast('Nada para imprimir com o filtro atual.'); return; }
+  const m = _cmpMeta();
+  const cel = t => t ? _cmpEsc(t).replace(/\r?\n/g, '<br>') : `<em class="vazio">${_CMP_VAZIO}</em>`;
+  const blocos = rows.map(r => `
+    <table>
+      <tr><th colspan="2">${_cmpEsc(r.nome)}${r.especial ? ' ⭐' : ''} <span class="turma">${_cmpEsc(r.turma)}</span></th></tr>
+      <tr class="lbl"><td>1º Semestre ${ANO_LETIVO}</td><td>2º Semestre ${ANO_LETIVO}</td></tr>
+      <tr><td class="txt">${cel(r.r1)}</td><td class="txt">${cel(r.r2)}</td></tr>
+    </table>`).join('');
+  const win = window.open('', '_blank');
+  if (!win) { toast('⚠️ Permita pop-ups para imprimir / gerar PDF.'); return; }
+  win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${_cmpEsc(m.arquivoBase)}</title>
+<style>
+  @page { size: A4; margin: 14mm; }
+  * { box-sizing: border-box; }
+  body { font-family: Georgia, 'Times New Roman', serif; color: #1c2e26; font-size: 11pt; line-height: 1.6; margin: 0; }
+  h1 { font-size: 16pt; color: #1b4332; margin: 0 0 2px; }
+  .sub { font-size: 9.5pt; color: #5a7a68; margin-bottom: 14px; border-bottom: 2px solid #52b788; padding-bottom: 8px; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-bottom: 14px; }
+  th { background: #d8f3dc; color: #1b4332; text-align: left; padding: 7px 10px; border: 1px solid #9bbfae; font-size: 12pt; break-after: avoid; }
+  th .turma { font-weight: 400; font-size: 9pt; color: #5a7a68; margin-left: 8px; }
+  tr.lbl td { background: #f7f9f8; font: 700 8.5pt 'DM Sans', Arial, sans-serif; text-transform: uppercase; letter-spacing: .6px; color: #5a7a68; padding: 5px 10px; border: 1px solid #9bbfae; break-after: avoid; }
+  td.txt { vertical-align: top; padding: 9px 10px; border: 1px solid #9bbfae; word-wrap: break-word; font-size: 10.5pt; }
+  em.vazio { color: #888; }
+</style></head><body>
+<h1>${_cmpEsc(m.titulo)}</h1>
+<div class="sub">${_cmpEsc(m.sub)}</div>
+${blocos}
+</body></html>`);
+  win.document.close();
+  win.focus();
+  setTimeout(() => win.print(), 350);
+}
+
+// ---- Word (.docx) e OpenDocument (.odt) ----
+function _carregarJSZip() {
+  return new Promise((resolve, reject) => {
+    if (window.JSZip) return resolve(window.JSZip);
+    const sc = document.createElement('script');
+    sc.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+    sc.onload = () => window.JSZip ? resolve(window.JSZip) : reject(new Error('JSZip indisponível'));
+    sc.onerror = () => reject(new Error('Não foi possível carregar o componente de exportação (verifique a internet).'));
+    document.head.appendChild(sc);
+  });
+}
+function _xmlEsc(t) {
+  return String(t == null ? '' : t)
+    .replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '')
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function _baixarBlob(blob, nome) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = nome;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 3000);
+}
+
+function _montarDocx(rows, m) {
+  const W = 'xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"';
+  const run = (txt, o = {}) =>
+    `<w:r><w:rPr><w:rFonts w:ascii="${o.font || 'Georgia'}" w:hAnsi="${o.font || 'Georgia'}" w:cs="${o.font || 'Georgia'}"/>` +
+    `${o.b ? '<w:b/>' : ''}${o.i ? '<w:i/>' : ''}<w:color w:val="${o.color || '1C2E26'}"/><w:sz w:val="${o.sz || 21}"/></w:rPr>` +
+    `<w:t xml:space="preserve">${_xmlEsc(txt)}</w:t></w:r>`;
+  const par = (txt, o = {}) =>
+    `<w:p><w:pPr>${o.keep ? '<w:keepNext/>' : ''}<w:spacing w:before="0" w:after="${o.after != null ? o.after : 80}" w:line="288" w:lineRule="auto"/></w:pPr>${run(txt, o)}</w:p>`;
+  const paras = (txt, o = {}) => (txt ? String(txt).split(/\r?\n/) : ['']).map(l => par(l, o)).join('');
+  const COL = 5103, TOT = COL * 2;
+  const borda = 'w:val="single" w:sz="4" w:space="0" w:color="9BBFAE"';
+  const cell = (inner, o = {}) =>
+    `<w:tc><w:tcPr><w:tcW w:w="${o.w || COL}" w:type="dxa"/>${o.span ? `<w:gridSpan w:val="${o.span}"/>` : ''}${o.fill ? `<w:shd w:val="clear" w:color="auto" w:fill="${o.fill}"/>` : ''}</w:tcPr>${inner}</w:tc>`;
+  const tblIni = `<w:tbl><w:tblPr><w:tblW w:w="${TOT}" w:type="dxa"/><w:tblBorders><w:top ${borda}/><w:left ${borda}/><w:bottom ${borda}/><w:right ${borda}/><w:insideH ${borda}/><w:insideV ${borda}/></w:tblBorders><w:tblLayout w:type="fixed"/><w:tblCellMar><w:top w:w="80" w:type="dxa"/><w:left w:w="120" w:type="dxa"/><w:bottom w:w="40" w:type="dxa"/><w:right w:w="120" w:type="dxa"/></w:tblCellMar></w:tblPr><w:tblGrid><w:gridCol w:w="${COL}"/><w:gridCol w:w="${COL}"/></w:tblGrid>`;
+
+  let body = par(m.titulo, { b: 1, sz: 32, color: '1B4332', after: 40 }) + par(m.sub, { sz: 19, color: '5A7A68', after: 240 });
+  rows.forEach(r => {
+    body += tblIni;
+    body += `<w:tr><w:trPr><w:cantSplit/></w:trPr>${cell(
+      `<w:p><w:pPr><w:keepNext/><w:spacing w:before="0" w:after="40"/></w:pPr>${run(r.nome + (r.especial ? ' ⭐' : ''), { b: 1, sz: 24, color: '1B4332' })}${run('   ' + r.turma, { sz: 18, color: '5A7A68' })}</w:p>`,
+      { span: 2, w: TOT, fill: 'D8F3DC' })}</w:tr>`;
+    body += `<w:tr><w:trPr><w:cantSplit/></w:trPr>${cell(par(`1º SEMESTRE ${ANO_LETIVO}`, { b: 1, sz: 17, color: '5A7A68', after: 20, keep: 1, font: 'Arial' }), { fill: 'F7F9F8' })}${cell(par(`2º SEMESTRE ${ANO_LETIVO}`, { b: 1, sz: 17, color: '5A7A68', after: 20, keep: 1, font: 'Arial' }), { fill: 'F7F9F8' })}</w:tr>`;
+    const c = t => t ? paras(t, { sz: 21 }) : par(_CMP_VAZIO, { i: 1, color: '888888', sz: 21 });
+    body += `<w:tr>${cell(c(r.r1))}${cell(c(r.r2))}</w:tr></w:tbl>`;
+    body += `<w:p><w:pPr><w:spacing w:before="0" w:after="160"/></w:pPr></w:p>`;   // separa as tabelas
+  });
+  const sect = `<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="850" w:right="850" w:bottom="850" w:left="850" w:header="567" w:footer="567" w:gutter="0"/></w:sectPr>`;
+  const documentXml = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document ${W}><w:body>${body}${sect}</w:body></w:document>`;
+  const contentTypes = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>`;
+  const rels = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>`;
+  return { contentTypes, rels, documentXml };
+}
+
+function _montarOdt(rows, m) {
+  const NS = 'xmlns:office="urn:oasis:names:tc:opendocument:xmlns:office:1.0" xmlns:style="urn:oasis:names:tc:opendocument:xmlns:style:1.0" xmlns:text="urn:oasis:names:tc:opendocument:xmlns:text:1.0" xmlns:table="urn:oasis:names:tc:opendocument:xmlns:table:1.0" xmlns:fo="urn:oasis:names:tc:opendocument:xmlns:xsl-fo-compatible:1.0"';
+  const p = (txt, st) => txt === '' ? `<text:p text:style-name="${st}"/>` : `<text:p text:style-name="${st}">${_xmlEsc(txt)}</text:p>`;
+  const paras = (txt, st) => String(txt).split(/\r?\n/).map(l => p(l, st)).join('');
+  const styles = `
+    <style:style style:name="Ptitulo" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.1cm"/><style:text-properties fo:font-size="16pt" fo:font-weight="bold" fo:color="#1b4332" fo:font-family="Georgia"/></style:style>
+    <style:style style:name="Psub" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.5cm"/><style:text-properties fo:font-size="9.5pt" fo:color="#5a7a68" fo:font-family="Georgia"/></style:style>
+    <style:style style:name="Pnome" style:family="paragraph"><style:paragraph-properties fo:keep-with-next="always"/><style:text-properties fo:font-size="12pt" fo:font-weight="bold" fo:color="#1b4332" fo:font-family="Georgia"/></style:style>
+    <style:style style:name="Plabel" style:family="paragraph"><style:paragraph-properties fo:keep-with-next="always"/><style:text-properties fo:font-size="8.5pt" fo:font-weight="bold" fo:color="#5a7a68" fo:font-family="Arial"/></style:style>
+    <style:style style:name="Ptxt" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.15cm" fo:line-height="140%"/><style:text-properties fo:font-size="10.5pt" fo:color="#1c2e26" fo:font-family="Georgia"/></style:style>
+    <style:style style:name="Pvazio" style:family="paragraph"><style:text-properties fo:font-size="10.5pt" fo:font-style="italic" fo:color="#888888" fo:font-family="Georgia"/></style:style>
+    <style:style style:name="Pgap" style:family="paragraph"><style:paragraph-properties fo:margin-bottom="0.35cm"/><style:text-properties fo:font-size="6pt"/></style:style>
+    <style:style style:name="Tbl" style:family="table"><style:table-properties style:width="18cm" table:align="margins"/></style:style>
+    <style:style style:name="Col" style:family="table-column"><style:table-column-properties style:column-width="9cm"/></style:style>
+    <style:style style:name="CellH" style:family="table-cell"><style:table-cell-properties fo:padding="0.15cm" fo:border="0.5pt solid #9bbfae" fo:background-color="#d8f3dc"/></style:style>
+    <style:style style:name="CellL" style:family="table-cell"><style:table-cell-properties fo:padding="0.12cm" fo:border="0.5pt solid #9bbfae" fo:background-color="#f7f9f8"/></style:style>
+    <style:style style:name="CellT" style:family="table-cell"><style:table-cell-properties fo:padding="0.18cm" fo:border="0.5pt solid #9bbfae"/></style:style>`;
+  let body = p(m.titulo, 'Ptitulo') + p(m.sub, 'Psub');
+  rows.forEach((r, i) => {
+    const txtCell = t => `<table:table-cell table:style-name="CellT" office:value-type="string">${t ? paras(t, 'Ptxt') : p(_CMP_VAZIO, 'Pvazio')}</table:table-cell>`;
+    body += `<table:table table:name="Aluno${i + 1}" table:style-name="Tbl"><table:table-column table:style-name="Col" table:number-columns-repeated="2"/>` +
+      `<table:table-row><table:table-cell table:style-name="CellH" table:number-columns-spanned="2" office:value-type="string">${p(r.nome + (r.especial ? ' ⭐' : '') + '  ·  ' + r.turma, 'Pnome')}</table:table-cell><table:covered-table-cell/></table:table-row>` +
+      `<table:table-row><table:table-cell table:style-name="CellL" office:value-type="string">${p(`1º SEMESTRE ${ANO_LETIVO}`, 'Plabel')}</table:table-cell><table:table-cell table:style-name="CellL" office:value-type="string">${p(`2º SEMESTRE ${ANO_LETIVO}`, 'Plabel')}</table:table-cell></table:table-row>` +
+      `<table:table-row>${txtCell(r.r1)}${txtCell(r.r2)}</table:table-row></table:table>` + p('', 'Pgap');
+  });
+  const content = `<?xml version="1.0" encoding="UTF-8"?><office:document-content ${NS} office:version="1.2"><office:automatic-styles>${styles}</office:automatic-styles><office:body><office:text>${body}</office:text></office:body></office:document-content>`;
+  const stylesXml = `<?xml version="1.0" encoding="UTF-8"?><office:document-styles ${NS} office:version="1.2"><office:automatic-styles><style:page-layout style:name="pm1"><style:page-layout-properties fo:page-width="21cm" fo:page-height="29.7cm" fo:margin-top="1.5cm" fo:margin-bottom="1.5cm" fo:margin-left="1.5cm" fo:margin-right="1.5cm"/></style:page-layout></office:automatic-styles><office:master-styles><style:master-page style:name="Standard" style:page-layout-name="pm1"/></office:master-styles></office:document-styles>`;
+  const manifest = `<?xml version="1.0" encoding="UTF-8"?><manifest:manifest xmlns:manifest="urn:oasis:names:tc:opendocument:xmlns:manifest:1.0" manifest:version="1.2"><manifest:file-entry manifest:full-path="/" manifest:version="1.2" manifest:media-type="application/vnd.oasis.opendocument.text"/><manifest:file-entry manifest:full-path="content.xml" manifest:media-type="text/xml"/><manifest:file-entry manifest:full-path="styles.xml" manifest:media-type="text/xml"/></manifest:manifest>`;
+  return { content, stylesXml, manifest };
+}
+
+async function exportarComparativo(fmt) {
+  const rows = _cmpLinhas();
+  if (!rows.length) { toast('Nada para exportar com o filtro atual.'); return; }
+  const m = _cmpMeta();
+  try {
+    toast('Gerando arquivo…');
+    const JSZip = await _carregarJSZip();
+    const zip = new JSZip();
+    let blob, ext;
+    if (fmt === 'odt') {
+      const o = _montarOdt(rows, m);
+      zip.file('mimetype', 'application/vnd.oasis.opendocument.text', { compression: 'STORE' });   // precisa ser o 1º arquivo, sem compressão
+      zip.file('META-INF/manifest.xml', o.manifest);
+      zip.file('content.xml', o.content);
+      zip.file('styles.xml', o.stylesXml);
+      blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.oasis.opendocument.text', compression: 'DEFLATE' });
+      ext = 'odt';
+    } else {
+      const d = _montarDocx(rows, m);
+      zip.file('[Content_Types].xml', d.contentTypes);
+      zip.file('_rels/.rels', d.rels);
+      zip.file('word/document.xml', d.documentXml);
+      blob = await zip.generateAsync({ type: 'blob', mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document', compression: 'DEFLATE' });
+      ext = 'docx';
+    }
+    _baixarBlob(blob, `${m.arquivoBase}.${ext}`);
+    toast(`Arquivo .${ext} baixado! ✅`);
+  } catch (e) {
+    console.error('Erro ao exportar comparativo', e);
+    toast('⚠️ ' + (e.message || 'Erro ao gerar o arquivo.'));
+  }
 }
 
 function copiarRelatorioSem(alunoId, sem) {
