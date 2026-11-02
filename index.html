@@ -1540,6 +1540,10 @@ let semestreAtual = (function(){ try { const v = parseInt(localStorage.getItem('
 let semSuportado = true;               // true quando as tabelas já têm a coluna "semestre"
 const allAval = { 1: {}, 2: {} };
 const allRel  = { 1: {}, 2: {} };
+// No 2º semestre, enquanto não houver texto do 2º, o texto do 1º serve de base ("Em andamento")
+function rascunhoSem1(id) { return (semestreAtual === 2 && !allRel[2][id] && allRel[1][id]) ? allRel[1][id] : ''; }
+function statusRel(id) { return state.relatorios[id] ? 'gerado' : (rascunhoSem1(id) ? 'andamento' : 'pendente'); }
+function statusRelTexto(id) { return { gerado: 'Gerado', andamento: 'Em andamento', pendente: 'Pendente' }[statusRel(id)]; }
 function semLabel() { return `${semestreAtual}º Semestre ${ANO_LETIVO}`; }
 function aplicarSemestre() {
   state.avaliacoes = allAval[semestreAtual];
@@ -2063,7 +2067,7 @@ function renderAlunos() {
       <td><span class="badge badge-turma">${turma ? turma.nome : '—'}</span></td>
       <td>${a.especial ? '<span class="badge badge-especial">⭐ Especial</span>' : '<span style="color:var(--texto-suave);font-size:12px;">—</span>'}</td>
       <td style="font-size:12px;color:var(--texto-suave);">${a.diagnostico || '—'}</td>
-      <td>${temRel ? '<span class="badge badge-sat">✅ Gerado</span>' : '<span class="badge" style="background:#f0f0f0;color:#888;">Pendente</span>'}</td>
+      <td>${temRel ? '<span class="badge badge-sat">✅ Gerado</span>' : (statusRel(a.id) === 'andamento' ? '<span class="badge" style="background:#fef3e2;color:#a05c00;">📝 Em andamento</span>' : '<span class="badge" style="background:#f0f0f0;color:#888;">Pendente</span>')}</td>
       <td style="display:flex;gap:5px;">
         <button class="btn btn-primary btn-sm" onclick="openAvaliacao('${a.id}')">📋 Avaliar</button>
         <button class="btn btn-outline btn-sm" onclick="imprimirCardAluno('${a.id}')" title="Imprimir card de acompanhamento">🖨️</button>
@@ -2102,9 +2106,16 @@ function openAvaliacao(alunoId) {
   document.getElementById('obs-adicionais').value = aval.obs || '';
   // Reset relatório tab
   const rel = state.relatorios[alunoId];
+  const base1 = rascunhoSem1(alunoId);
   document.getElementById('relatorio-output').innerHTML = rel
     ? `<div class="relatorio-box">${rel}</div>`
-    : '<div class="empty-state"><div class="icon">✨</div><p>Clique em "Gerar com IA" para criar o parágrafo do relatório.</p></div>';
+    : (base1
+      ? `<div style="background:#fff8e1;border:1.5px solid #f9c74f;border-radius:10px;padding:12px 14px;">
+           <div style="font-size:12px;font-weight:700;color:#a05c00;margin-bottom:6px;">📝 EM ANDAMENTO — texto do 1º semestre (base)</div>
+           <div class="relatorio-box" style="margin:0;">${base1}</div>
+           <div style="font-size:12px;color:#7a5200;margin-top:8px;">Preencha a avaliação do 2º semestre e clique em "Gerar com IA": o sistema usa este texto + a avaliação atual para escrever o novo relatório.</div>
+         </div>`
+      : '<div class="empty-state"><div class="icon">✨</div><p>Clique em "Gerar com IA" para criar o parágrafo do relatório.</p></div>');
   document.getElementById('rel-edit-area').style.display = 'none';
   document.getElementById('rel-actions').style.display = rel ? '' : 'none';
   switchTab('avaliacao');
@@ -2124,6 +2135,8 @@ async function salvarAvaliacao() {
 
 // ===================== IA – GERAR RELATÓRIO =====================
 function buildPrompt(aluno, aval, turma) {
+  const prev = rascunhoSem1(aluno.id) || (semestreAtual === 2 ? (allRel[1][aluno.id] || '') : '');
+  const prevBlock = prev ? `\nRELATÓRIO DO 1º SEMESTRE (texto base, já entregue à família):\n${prev}\n\nUSO DO TEXTO DO 1º SEMESTRE: parta dele para mostrar a evolução da criança (o que avançou e o que segue em desenvolvimento). As avaliações do 2º semestre acima prevalecem em caso de divergência. Não copie frases do texto anterior; escreva um texto novo, mantendo 80 a 100 palavras.\n` : '';
   const figuraMap = { nao_desenvolveu: 'ainda não desenvolveu esta habilidade', duas_partes: 'representa a figura humana com pelo menos duas partes', tres_partes: 'representa a figura humana com três ou mais partes', completa: 'apresenta representação completa da figura humana (com olhos, boca, cabelo e todas as partes do corpo)' };
   function descCriterio(lista, avalObj) {
     return lista.map(c => `- ${c.texto}: ${avalObj[c.id] === 'S' ? 'Satisfatório' : avalObj[c.id] === 'D' ? 'Em desenvolvimento' : avalObj[c.id] === 'N' ? 'Não adquirido' : 'Não avaliado'}`).join('\n');
@@ -2165,6 +2178,7 @@ FIGURA HUMANA: ${aval.figuraHumana ? figuraMap[aval.figuraHumana] || aval.figura
 
 ${aval.obs ? 'OBSERVAÇÕES DA PROFESSORA: ' + aval.obs : ''}
 
+${prevBlock}
 Escreva apenas o texto do relatório, sem título, sem introdução, sem assinatura.`;
 }
 
@@ -2533,7 +2547,7 @@ function renderLoteStep2() {
     return `<label class="lote-aluno-item">
       <input type="checkbox" id="lchk-${a.id}" ${sel?'checked':''} onchange="loteToggleAluno('${a.id}', this.checked)">
       <label for="lchk-${a.id}" style="flex:1;cursor:pointer;">${a.nome}</label>
-      ${temRel ? '<span class="badge badge-sat" style="font-size:10px;">✅ já tem</span>' : ''}
+      ${temRel ? '<span class="badge badge-sat" style="font-size:10px;">✅ já tem</span>' : (statusRel(a.id) === 'andamento' ? '<span class="badge" style="font-size:10px;background:#fef3e2;color:#a05c00;">📝 base 1º sem.</span>' : '')}
     </label>`;
   }).join('');
   atualizarLoteSelInfo();
@@ -3088,7 +3102,7 @@ function expGerarLinhas(sep) {
     }
     if (expTipo === 'resumo') {
       const avaliados = cS+cD+cN;
-      rows.push([...base, cS, cD, cN, avaliados, rel ? 'Gerado' : 'Pendente'].map(esc).join(sep));
+      rows.push([...base, cS, cD, cN, avaliados, statusRelTexto(a.id)].map(esc).join(sep));
       return;
     }
     // completo ou tudo
@@ -3099,7 +3113,7 @@ function expGerarLinhas(sep) {
       rows.push([...base, ...criterioVals, figura, obs].map(esc).join(sep));
     } else {
       // tudo
-      rows.push([...base, ...criterioVals, figura, obs, cS, cD, cN, rel ? 'Gerado' : 'Pendente', rel].map(esc).join(sep));
+      rows.push([...base, ...criterioVals, figura, obs, cS, cD, cN, statusRelTexto(a.id), rel].map(esc).join(sep));
     }
   });
 
