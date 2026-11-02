@@ -671,6 +671,63 @@
     .sem-cabecalho .campo-linha, .mes-card-body { grid-template-columns: 1fr; }
   }
 
+  /* RELATÓRIOS: SUB ABAS + COMPARATIVO 1º × 2º SEMESTRE */
+  .rel-sub-tabs { margin-bottom: 20px; }
+  .rel-sub { display: none; }
+  .rel-sub.active { display: block; }
+  .comp-toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:16px; }
+  .comp-toolbar select, .comp-toolbar input[type=text] {
+    padding: 8px 12px; border: 1.5px solid var(--cinza-borda); border-radius: 8px;
+    font-size: 13px; font-family: 'DM Sans', sans-serif; background: white; color: var(--texto);
+  }
+  .comp-toolbar input[type=text] { padding-left: 34px; width: 220px; }
+  .comp-toolbar .search-bar .search-icon { left: 11px; }
+  .comp-toolbar label.comp-check { display:flex; align-items:center; gap:6px; font-size:12.5px; color: var(--texto-suave); cursor:pointer; font-weight:500; }
+  .comp-toolbar label.comp-check input { accent-color: var(--verde); width:15px; height:15px; cursor:pointer; }
+  .comp-resumo { display:flex; gap:8px; flex-wrap:wrap; margin-left:auto; }
+  .comp-pill { background: white; border: 1px solid var(--cinza-borda); border-radius: 20px; padding: 4px 12px; font-size: 11.5px; font-weight: 600; color: var(--texto-suave); }
+  .comp-pill b { color: var(--verde-escuro); }
+  .comp-card { background: white; border: 1px solid var(--cinza-borda); border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 16px; overflow: hidden; }
+  .comp-card-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding: 12px 18px; background: var(--cinza-bg); border-bottom: 1px solid var(--cinza-borda); }
+  .comp-card-head .comp-nome { font-family: 'Lora', serif; font-size: 15px; font-weight: 700; color: var(--verde-escuro); }
+  .comp-cols { display:grid; grid-template-columns: 1fr 1fr; }
+  .comp-col { padding: 14px 18px 16px; min-width: 0; display:flex; flex-direction:column; gap:10px; }
+  .comp-col + .comp-col { border-left: 1px solid var(--cinza-borda); }
+  .comp-col-head { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+  .comp-col-titulo { font-size: 11px; font-weight: 700; color: var(--texto-suave); text-transform: uppercase; letter-spacing: .8px; }
+  .comp-col-titulo .comp-words { font-weight: 500; text-transform:none; letter-spacing:0; margin-left:6px; opacity:.8; }
+  .comp-col-acoes { display:flex; gap:5px; }
+  .comp-texto {
+    font-family: 'Lora', serif; font-size: 13.5px; line-height: 1.75; color: var(--texto);
+    background: linear-gradient(135deg, var(--verde-menta) 0%, #fff 100%);
+    border: 1.5px solid var(--verde-claro); border-radius: 10px; padding: 14px 16px;
+    white-space: pre-wrap; word-wrap: break-word;
+  }
+  .comp-compacto .comp-texto { max-height: 220px; overflow-y: auto; }
+  .comp-vazio {
+    background: var(--cinza-bg); border: 1.5px dashed var(--cinza-borda); border-radius: 10px;
+    padding: 22px 16px; text-align: center; color: var(--texto-suave); font-size: 13px;
+  }
+  .comp-vazio .btn { margin-top: 10px; }
+  @media (max-width: 760px) {
+    .comp-cols { grid-template-columns: 1fr; }
+    .comp-col + .comp-col { border-left: none; border-top: 1px solid var(--cinza-borda); }
+    .comp-resumo { margin-left: 0; }
+    .comp-toolbar input[type=text] { width: 100%; }
+    .comp-toolbar .search-bar { flex: 1 1 100%; }
+  }
+  @media (max-width: 600px) {
+    .rel-sub-tabs.tabs { width: 100%; }
+    .comp-card-head { padding: 10px 12px; }
+    .comp-col { padding: 12px; }
+  }
+  @media print {
+    .rel-sub-tabs, .comp-toolbar, .comp-col-acoes { display: none !important; }
+    .comp-card { break-inside: avoid; box-shadow: none; }
+    .comp-compacto .comp-texto { max-height: none; overflow: visible; }
+    .comp-texto { background: white; }
+  }
+
 </style>
 </head>
 <body>
@@ -832,6 +889,13 @@
 
     <!-- RELATÓRIOS -->
     <div class="page" id="page-relatorios">
+      <div class="tabs rel-sub-tabs" id="rel-sub-tabs">
+        <div class="tab active" data-relsub="lista" onclick="trocarSubRelatorios('lista')">📄 Relatórios</div>
+        <div class="tab" data-relsub="comparar" onclick="trocarSubRelatorios('comparar')">⚖️ 1º × 2º Semestre</div>
+      </div>
+
+      <!-- SUB ABA: LISTA (original) -->
+      <div class="rel-sub active" id="rel-sub-lista">
       <div class="card">
         <div class="card-header">
           <h3>Relatórios Gerados</h3>
@@ -850,6 +914,31 @@
             <tbody id="tabela-relatorios"><tr><td colspan="5"><div class="empty-state"><div class="icon">📄</div><p>Nenhum relatório ainda.</p></div></td></tr></tbody>
           </table>
         </div>
+      </div>
+      </div>
+
+      <!-- SUB ABA: COMPARATIVO 1º × 2º SEMESTRE -->
+      <div class="rel-sub" id="rel-sub-comparar">
+        <div class="comp-toolbar">
+          <select id="filtro-comp-turma" onchange="renderComparativo()">
+            <option value="">Todas as turmas</option>
+          </select>
+          <div class="search-bar">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="busca-comp" placeholder="Buscar aluno…" oninput="renderComparativo()">
+          </div>
+          <select id="filtro-comp-status" onchange="renderComparativo()">
+            <option value="">Todos os alunos</option>
+            <option value="ambos">Com os dois relatórios</option>
+            <option value="falta">Falta algum relatório</option>
+            <option value="so1">Só 1º semestre</option>
+            <option value="so2">Só 2º semestre</option>
+          </select>
+          <label class="comp-check"><input type="checkbox" id="comp-compacto" onchange="renderComparativo()"> Textos compactos</label>
+          <button class="btn btn-outline btn-sm" onclick="window.print()" title="Imprimir esta comparação">🖨️ Imprimir</button>
+          <div class="comp-resumo" id="comp-resumo"></div>
+        </div>
+        <div id="comp-lista"></div>
       </div>
     </div>
 
@@ -1803,6 +1892,7 @@ function goTo(page) {
   if (page === 'alunos') renderAlunos();
   if (page === 'relatorios') renderRelatorios();
   if (page === 'alunos' || page === 'relatorios') populateFiltroTurma();
+  if (page === 'relatorios') restaurarSubRelatorios();
   if (page === 'planejamento') initPlanejamento();
   if (page === 'planejamento-mensal') initPlanejamentoMensal();
   if (page === 'dashboard-semanas') initDashboardSemanas();
@@ -2084,9 +2174,12 @@ function populateSelectTurmas(selectId) {
 }
 
 function populateFiltroTurma() {
-  ['filtro-turma', 'filtro-rel-turma'].forEach(id => {
+  ['filtro-turma', 'filtro-rel-turma', 'filtro-comp-turma'].forEach(id => {
     const el = document.getElementById(id);
-    if (el) el.innerHTML = '<option value="">Todas as turmas</option>' + state.turmas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
+    if (!el) return;
+    const prev = el.value;
+    el.innerHTML = '<option value="">Todas as turmas</option>' + state.turmas.map(t => `<option value="${t.id}">${t.nome}</option>`).join('');
+    if (prev && state.turmas.some(t => t.id === prev)) el.value = prev;
   });
 }
 
@@ -2358,8 +2451,118 @@ function imprimirVer() {
   win.document.close(); win.print();
 }
 
+// ===================== RELATÓRIOS: COMPARATIVO 1º × 2º SEMESTRE =====================
+function trocarSubRelatorios(sub) {
+  if (sub !== 'lista' && sub !== 'comparar') sub = 'lista';
+  document.querySelectorAll('#rel-sub-tabs .tab').forEach(t => t.classList.toggle('active', t.dataset.relsub === sub));
+  document.getElementById('rel-sub-lista')?.classList.toggle('active', sub === 'lista');
+  document.getElementById('rel-sub-comparar')?.classList.toggle('active', sub === 'comparar');
+  try { localStorage.setItem('relSubTab_v1', sub); } catch(e) {}
+  if (sub === 'comparar') renderComparativo();
+}
+function restaurarSubRelatorios() {
+  let sub = 'lista';
+  try { sub = localStorage.getItem('relSubTab_v1') || 'lista'; } catch(e) {}
+  trocarSubRelatorios(sub);
+}
+function _cmpEsc(t) {
+  return String(t == null ? '' : t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+function _cmpPalavras(t) { return t ? t.trim().split(/\s+/).filter(Boolean).length : 0; }
+
+function renderComparativo() {
+  const box = document.getElementById('comp-lista');
+  if (!box) return;
+  const turmaId = document.getElementById('filtro-comp-turma').value;
+  const busca = (document.getElementById('busca-comp').value || '').trim().toLowerCase();
+  const status = document.getElementById('filtro-comp-status').value;
+  const compacto = document.getElementById('comp-compacto').checked;
+
+  const base = state.alunos.filter(a =>
+    (!turmaId || a.turmaId === turmaId) &&
+    (!busca || a.nome.toLowerCase().includes(busca))
+  );
+  const tem1 = a => !!allRel[1][a.id];
+  const tem2 = a => !!allRel[2][a.id];
+
+  // resumo (sobre o filtro de turma/busca, antes do filtro de status)
+  const nAmbos = base.filter(a => tem1(a) && tem2(a)).length;
+  const n1 = base.filter(tem1).length;
+  const n2 = base.filter(tem2).length;
+  document.getElementById('comp-resumo').innerHTML =
+    `<span class="comp-pill">1º sem: <b>${n1}</b></span>` +
+    `<span class="comp-pill">2º sem: <b>${n2}</b></span>` +
+    `<span class="comp-pill">Ambos: <b>${nAmbos}</b></span>` +
+    `<span class="comp-pill">Alunos: <b>${base.length}</b></span>`;
+
+  let lista = base.filter(a => {
+    if (status === 'ambos') return tem1(a) && tem2(a);
+    if (status === 'falta') return !(tem1(a) && tem2(a));
+    if (status === 'so1')   return tem1(a) && !tem2(a);
+    if (status === 'so2')   return !tem1(a) && tem2(a);
+    return true;
+  });
+  lista.sort((a, b) => a.nome.localeCompare(b.nome));
+
+  if (!lista.length) {
+    box.innerHTML = `<div class="card"><div class="empty-state"><div class="icon">⚖️</div><p>${base.length ? 'Nenhum aluno com esse filtro.' : 'Nenhum aluno encontrado.'}</p></div></div>`;
+    return;
+  }
+
+  const coluna = (a, sem) => {
+    const txt = allRel[sem][a.id];
+    const titulo = `${sem}º Semestre ${ANO_LETIVO}`;
+    if (!txt) {
+      return `<div class="comp-col">
+        <div class="comp-col-head"><span class="comp-col-titulo">${titulo}</span><span class="badge badge-nao">Pendente</span></div>
+        <div class="comp-vazio">Relatório do ${sem}º semestre ainda não gerado.
+          <br><button class="btn btn-primary btn-sm" onclick="editarRelatorioSem('${a.id}', ${sem})">✨ Gerar / escrever</button>
+        </div>
+      </div>`;
+    }
+    return `<div class="comp-col">
+      <div class="comp-col-head">
+        <span class="comp-col-titulo">${titulo}<span class="comp-words">· ${_cmpPalavras(txt)} palavras</span></span>
+        <div class="comp-col-acoes">
+          <button class="btn btn-outline btn-sm" onclick="copiarRelatorioSem('${a.id}', ${sem})" title="Copiar texto">📋</button>
+          <button class="btn btn-outline btn-sm" onclick="editarRelatorioSem('${a.id}', ${sem})" title="Editar no ${sem}º semestre">✏️</button>
+        </div>
+      </div>
+      <div class="comp-texto">${_cmpEsc(txt)}</div>
+    </div>`;
+  };
+
+  box.innerHTML = `<div class="${compacto ? 'comp-compacto' : ''}">` + lista.map(a => {
+    const turma = state.turmas.find(t => t.id === a.turmaId);
+    return `<div class="comp-card">
+      <div class="comp-card-head">
+        <span class="comp-nome">${_cmpEsc(a.nome)}</span>
+        ${a.especial ? '<span class="badge badge-especial" style="font-size:10px;">⭐ Ed. Especial</span>' : ''}
+        <span class="badge badge-turma">${turma ? _cmpEsc(turma.nome) : '—'}</span>
+      </div>
+      <div class="comp-cols">${coluna(a, 1)}${coluna(a, 2)}</div>
+    </div>`;
+  }).join('') + `</div>`;
+}
+
+function copiarRelatorioSem(alunoId, sem) {
+  const txt = allRel[sem][alunoId] || '';
+  if (!txt) return;
+  navigator.clipboard.writeText(txt).then(() => toast(`Relatório do ${sem}º semestre copiado! 📋`));
+}
+// Edita o relatório de um semestre específico: muda o semestre ativo (se preciso) e abre a avaliação
+function editarRelatorioSem(alunoId, sem) {
+  if (semestreAtual !== sem) {
+    if (sem === 2 && !semSuportado) { mostrarSqlSemestre(); return; }
+    trocarSemestre(sem);
+  }
+  openAvaliacao(alunoId);
+  setTimeout(() => switchTab('relatorio'), 100);
+}
+
 // ===================== RELATÓRIOS PAGE =====================
 function renderRelatorios() {
+  if (document.getElementById('rel-sub-comparar')?.classList.contains('active')) renderComparativo();
   const filtro = document.getElementById('filtro-rel-turma').value;
   const tbody = document.getElementById('tabela-relatorios');
   const lista = state.alunos.filter(a => (!filtro || a.turmaId === filtro) && state.relatorios[a.id]);
