@@ -61,6 +61,8 @@
   .nav-item.active { background: rgba(82,183,136,0.18); color: var(--verde-claro); border-left-color: var(--verde-claro); }
   .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
   .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.08); }
+  select.semester-badge { width: 100%; cursor: pointer; appearance: none; -webkit-appearance: none; font-family: inherit; }
+  select.semester-badge option { color: #1c2e26; background: white; }
   .semester-badge {
     background: rgba(249,199,79,0.15); border: 1px solid rgba(249,199,79,0.35);
     color: var(--amarelo); font-size: 11px; font-weight: 600;
@@ -675,7 +677,7 @@
     <div class="login-logo">🌿</div>
     <div class="login-escola">CEMEI Vila da Paz · Contagem/MG</div>
     <h1 class="login-titulo">Relatórios Educação Infantil</h1>
-    <p class="login-sub">1º Semestre 2026 · Acesso restrito</p>
+    <p class="login-sub">Ano letivo 2026 · Acesso restrito</p>
     <div class="form-group">
       <label>E-mail</label>
       <input type="email" id="login-user" placeholder="seu@email.com" autocomplete="username">
@@ -708,7 +710,7 @@
     <div class="nav-item" onclick="goTo('planejamento-semestral')"><span class="icon">📚</span> Planejamento Semestral</div>
   </nav>
   <div class="sidebar-footer">
-    <div class="semester-badge">1º Semestre 2026</div>
+    <select id="sel-semestre" class="semester-badge" onchange="trocarSemestre(this.value)" title="Semestre de trabalho"><option value="1">1º Semestre 2026</option><option value="2">2º Semestre 2026</option></select>
     <button class="btn-sair" onclick="fazerLogout()">🚪 Sair</button>
   </div>
 </div>
@@ -1520,6 +1522,64 @@ let db = null;          // inicializado após carregar config.json
 
 // ===================== STATE =====================
 let state = { turmas: [], alunos: [], avaliacoes: {}, relatorios: {} };
+// ===== Semestres: state.avaliacoes / state.relatorios sempre apontam para o semestre ativo =====
+const ANO_LETIVO = 2026;
+let semestreAtual = (function(){ try { const v = parseInt(localStorage.getItem('semestreAtual_v1'), 10); return (v === 1 || v === 2) ? v : 2; } catch(e) { return 2; } })();
+let semSuportado = true;               // true quando as tabelas já têm a coluna "semestre"
+const allAval = { 1: {}, 2: {} };
+const allRel  = { 1: {}, 2: {} };
+function semLabel() { return `${semestreAtual}º Semestre ${ANO_LETIVO}`; }
+function aplicarSemestre() {
+  state.avaliacoes = allAval[semestreAtual];
+  state.relatorios = allRel[semestreAtual];
+  const sel = document.getElementById('sel-semestre');
+  if (sel) sel.value = String(semestreAtual);
+}
+const SQL_SEMESTRE = `-- Rode no Supabase (SQL Editor). Seus dados atuais viram "1º semestre".
+alter table avaliacoes add column if not exists semestre int not null default 1;
+alter table relatorios add column if not exists semestre int not null default 1;
+
+alter table avaliacoes drop constraint if exists avaliacoes_pkey;
+alter table avaliacoes add primary key (aluno_id, semestre);
+
+alter table relatorios drop constraint if exists relatorios_pkey;
+alter table relatorios add primary key (aluno_id, semestre);`;
+function mostrarSqlSemestre() {
+  const old = document.getElementById('modal-sql-semestre'); if (old) old.remove();
+  const d = document.createElement('div');
+  d.id = 'modal-sql-semestre';
+  d.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+  d.innerHTML = `<div style="background:white;border-radius:14px;max-width:640px;width:100%;padding:22px;max-height:90vh;overflow:auto;">
+    <h3 style="margin:0 0 8px;color:#1b4332;">Falta um passo no Supabase</h3>
+    <p style="font-size:13px;line-height:1.6;color:#444;margin:0 0 10px;">Para guardar o 2º semestre <strong>sem apagar o 1º</strong>, as tabelas de avaliações e relatórios precisam da coluna <code>semestre</code>. Copie o SQL abaixo, rode no <em>SQL Editor</em> do Supabase e recarregue o sistema.</p>
+    <pre id="sql-semestre-pre" style="background:#f4f7f5;border:1px solid #d6e2db;border-radius:8px;padding:12px;font-size:12px;white-space:pre-wrap;"></pre>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+      <button class="btn btn-outline" onclick="navigator.clipboard.writeText(SQL_SEMESTRE).then(()=>toast('SQL copiado! 📋'))">📋 Copiar SQL</button>
+      <button class="btn btn-primary" onclick="document.getElementById('modal-sql-semestre').remove()">Fechar</button>
+    </div></div>`;
+  document.body.appendChild(d);
+  document.getElementById('sql-semestre-pre').textContent = SQL_SEMESTRE;
+}
+function trocarSemestre(v) {
+  v = parseInt(v, 10);
+  if (v !== 1 && v !== 2) return;
+  if (v === 2 && !semSuportado) { aplicarSemestre(); mostrarSqlSemestre(); return; }
+  semestreAtual = v;
+  try { localStorage.setItem('semestreAtual_v1', String(v)); } catch(e) {}
+  aplicarSemestre();
+  document.getElementById('modal-avaliacao')?.classList.remove('open');
+  renderDashboard(); renderAlunos(); renderRelatorios();
+  toast(`Trabalhando no ${semLabel()}`);
+}
+// Grava avaliações/relatórios já com o semestre (ou no formato antigo se a migração ainda não foi feita)
+async function dbUpsertSem(tabela, rows) {
+  const arr = (Array.isArray(rows) ? rows : [rows]);
+  if (!arr.length) return;
+  let res;
+  if (semSuportado) res = await db.from(tabela).upsert(arr.map(r => ({ ...r, semestre: semestreAtual })), { onConflict: 'aluno_id,semestre' });
+  else res = await db.from(tabela).upsert(arr);
+  if (res.error) { console.error('Erro ao salvar em ' + tabela, res.error); toast('⚠️ Erro ao salvar (' + tabela + '). Veja se rodou o SQL do semestre.'); }
+}
 let currentAlunoId = null;
 let currentTab = 'avaliacao';
 
@@ -1562,6 +1622,8 @@ async function verificarECriarTabelas() {
 
 async function loadState() {
   await verificarECriarTabelas();
+  try { const { error: eSem } = await db.from('avaliacoes').select('semestre').limit(1); semSuportado = !eSem; } catch(e) { semSuportado = false; }
+  if (!semSuportado) { semestreAtual = 1; }
   const [{ data: turmas }, { data: alunos }, { data: avals }, { data: rels }, { data: plans, error: planErr }, { data: plansSem, error: planSemErr }] = await Promise.all([
     db.from('turmas').select('*'),
     db.from('alunos').select('*'),
@@ -1572,10 +1634,10 @@ async function loadState() {
   ]);
   state.turmas  = turmas  || [];
   state.alunos  = (alunos || []).map(a => ({ ...a, turmaId: a.turma_id }));
-  state.avaliacoes = {};
-  (avals || []).forEach(av => { state.avaliacoes[av.aluno_id] = av.dados; });
-  state.relatorios = {};
-  (rels  || []).forEach(r  => { state.relatorios[r.aluno_id]  = r.texto; });
+  allAval[1] = {}; allAval[2] = {}; allRel[1] = {}; allRel[2] = {};
+  (avals || []).forEach(av => { allAval[av.semestre === 2 ? 2 : 1][av.aluno_id] = av.dados; });
+  (rels  || []).forEach(r  => { allRel[r.semestre === 2 ? 2 : 1][r.aluno_id] = r.texto; });
+  aplicarSemestre();
   // Carrega planejamentos — estrutura real: {ano, mes, tema, semana_idx, semana_id, label, dados (jsonb)}
   planState = {};
   if (!planErr && plans) {
@@ -1637,11 +1699,11 @@ async function saveState() {
 
   // Avaliações
   const avals = Object.entries(state.avaliacoes).map(([aluno_id, dados]) => ({ aluno_id, dados }));
-  if (avals.length) await db.from('avaliacoes').upsert(avals);
+  if (avals.length) await dbUpsertSem('avaliacoes', avals);
 
   // Relatórios
   const rels = Object.entries(state.relatorios).map(([aluno_id, texto]) => ({ aluno_id, texto }));
-  if (rels.length) await db.from('relatorios').upsert(rels);
+  if (rels.length) await dbUpsertSem('relatorios', rels);
 }
 
 // ===================== CRITÉRIOS =====================
@@ -1968,7 +2030,7 @@ async function salvarAluno() {
 async function excluirAluno(id) {
   if (!confirm('Excluir este aluno?')) return;
   state.alunos = state.alunos.filter(a => a.id !== id);
-  delete state.avaliacoes[id]; delete state.relatorios[id];
+  [1,2].forEach(n => { delete allAval[n][id]; delete allRel[n][id]; });
   await db.from('alunos').delete().eq('id', id);
   renderAlunos(); toast('Aluno removido.');
 }
@@ -2042,7 +2104,7 @@ async function salvarAvaliacao() {
   state.avaliacoes[currentAlunoId].figuraHumana = document.getElementById('figura-humana').value;
   state.avaliacoes[currentAlunoId].obs = document.getElementById('obs-adicionais').value;
   syncStart();
-  await db.from('avaliacoes').upsert({ aluno_id: currentAlunoId, dados: state.avaliacoes[currentAlunoId] });
+  await dbUpsertSem('avaliacoes', { aluno_id: currentAlunoId, dados: state.avaliacoes[currentAlunoId] });
   syncOk();
   toast('Avaliação salva! ✅'); closeModal('modal-avaliacao'); renderAlunos();
 }
@@ -2070,6 +2132,7 @@ ${aluno.especial && aluno.diagnostico ? `- Diagnóstico da criança: ${aluno.dia
 
 NOME DA CRIANÇA: ${aluno.nome}
 TURMA: ${turma ? turma.nome : ''}
+PERÍODO DO RELATÓRIO: ${semLabel()}${semestreAtual === 2 ? ' (fechamento do ano letivo — relate o desenvolvimento observado ao longo deste semestre)' : ''}
 
 AVALIAÇÕES REGISTRADAS:
 
@@ -2114,7 +2177,7 @@ async function gerarRelatorio() {
     if (!texto) throw new Error('Resposta vazia');
     state.relatorios[currentAlunoId] = texto;
     syncStart();
-    await db.from('relatorios').upsert({ aluno_id: currentAlunoId, texto, atualizado_em: new Date().toISOString() });
+    await dbUpsertSem('relatorios', { aluno_id: currentAlunoId, texto, atualizado_em: new Date().toISOString() });
     syncOk();
     outDiv.innerHTML = `<div class="relatorio-box">${texto}</div>`;
     document.getElementById('rel-actions').style.display = '';
@@ -2148,7 +2211,7 @@ async function gerarLote(turmaId) {
       const data = await res.json();
       if (!res.ok || !data.texto) throw new Error();
       state.relatorios[aluno.id] = data.texto;
-      await db.from('relatorios').upsert({ aluno_id: aluno.id, texto: data.texto, atualizado_em: new Date().toISOString() });
+      await dbUpsertSem('relatorios', { aluno_id: aluno.id, texto: data.texto, atualizado_em: new Date().toISOString() });
       ok++;
     } catch { erro++; }
     toast(`Gerados: ${ok} ✅  Erros: ${erro} ❌  de ${alunos.length}`);
@@ -2178,7 +2241,7 @@ function imprimirLote(turmaId) {
     </div>`;
   }).join('');
   win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-    <title>Relatórios – ${turma ? turma.nome : 'Todos os alunos'}</title>
+    <title>Relatórios ${semestreAtual}º Sem – ${turma ? turma.nome : 'Todos os alunos'}</title>
     <style>
       @page { size: A4; margin: 1.5cm; }
       body { font-family: Georgia, serif; font-size: 12pt; color: #1c2e26; }
@@ -2194,7 +2257,7 @@ function imprimirLote(turmaId) {
     </style>
   </head><body>
     <h1>Relatórios Educação Infantil – CEMEI Vila da Paz</h1>
-    <p class="meta">${turma ? turma.nome + ' · ' : ''}1º Semestre 2026 · Prof.ª R2 Paula Ramoni da Silva · ${alunos.length} aluno(s)</p>
+    <p class="meta">${turma ? turma.nome + ' · ' : ''}${semLabel()} · Prof.ª R2 Paula Ramoni da Silva · ${alunos.length} aluno(s)</p>
     ${linhas}
   </body></html>`);
   win.document.close();
@@ -2211,7 +2274,7 @@ function editarRelatorio() {
 async function salvarTextoEditado() {
   const novo = document.getElementById('rel-texto-editavel').value;
   state.relatorios[currentAlunoId] = novo;
-  await db.from('relatorios').upsert({ aluno_id: currentAlunoId, texto: novo, atualizado_em: new Date().toISOString() });
+  await dbUpsertSem('relatorios', { aluno_id: currentAlunoId, texto: novo, atualizado_em: new Date().toISOString() });
   document.getElementById('relatorio-output').innerHTML = `<div class="relatorio-box">${novo}</div>`;
   document.getElementById('relatorio-output').style.display = '';
   document.getElementById('rel-edit-area').style.display = 'none';
@@ -2241,7 +2304,7 @@ function imprimirRelatorio() {
   .meta{font-size:12px;color:#5a7a68;margin:8px 0 24px;}
   p{margin:0;}</style></head><body>
   <h2>Relatório Educação Infantil – CEMEI Vila da Paz</h2>
-  <p class="meta">Aluno: <strong>${aluno.nome}</strong> &nbsp;|&nbsp; 1º Semestre 2026 &nbsp;|&nbsp; Prof.ª Paula Ramoni da Silva</p>
+  <p class="meta">Aluno: <strong>${aluno.nome}</strong> &nbsp;|&nbsp; ${semLabel()} &nbsp;|&nbsp; Prof.ª Paula Ramoni da Silva</p>
   <p>${texto}</p>
   </body></html>`);
   win.document.close(); win.print();
@@ -2552,7 +2615,7 @@ async function executarLote() {
       const data = await res.json();
       if (!res.ok || !data.texto) throw new Error();
       state.relatorios[aluno.id] = data.texto;
-      await db.from('relatorios').upsert({ aluno_id: aluno.id, texto: data.texto, atualizado_em: new Date().toISOString() });
+      await dbUpsertSem('relatorios', { aluno_id: aluno.id, texto: data.texto, atualizado_em: new Date().toISOString() });
       ok++;
     } catch { erro++; }
     toast(`Gerados: ${ok} ✅  Erros: ${erro} ❌`);
@@ -2667,7 +2730,7 @@ function gerarHTMLCardImpressao(aluno, opts) {
           </div>
         </div>
         <div style="text-align:right;">
-          <div style="color:rgba(255,255,255,.5);font-size:8pt;">1º Semestre 2026</div>
+          <div style="color:rgba(255,255,255,.5);font-size:8pt;">${semLabel()}</div>
           <div style="color:rgba(255,255,255,.5);font-size:8pt;margin-top:4px;">Prof.ª R2 - PAULA RAMONI</div>
           <div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end;">
             <span style="background:${cS>0?'#d8f3dc':'#f0f0f0'};color:${cS>0?'#1b4332':'#aaa'};padding:3px 8px;border-radius:6px;font-size:9pt;font-weight:700;">${cS} S</span>
@@ -3034,7 +3097,7 @@ function expBaixarCSV() {
   const csv = expGerarLinhas(',');
   const turmaId = document.getElementById('exp-filtro-turma').value;
   const turma = turmaId ? state.turmas.find(t => t.id === turmaId) : null;
-  const nome = `CEMEI_${expTipo}_${turma ? turma.nome.replace(/\s+/g,'_') : 'todas'}_${new Date().toISOString().slice(0,10)}.csv`;
+  const nome = `CEMEI_${semestreAtual}sem_${expTipo}_${turma ? turma.nome.replace(/\s+/g,'_') : 'todas'}_${new Date().toISOString().slice(0,10)}.csv`;
   const bom = '\uFEFF'; // BOM para Excel/Sheets reconhecer UTF-8
   const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
   const a = document.createElement('a');
